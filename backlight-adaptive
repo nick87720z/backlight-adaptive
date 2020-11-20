@@ -1,0 +1,378 @@
+#!/bin/sh
+#
+# Copyright (c) 2020 Nikita Zlobin <nick87720z@gmail.com>
+#
+# backlight-adaptive is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# backlight-adaptive is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+startup_args="$*"
+progname=backlight-adaptive
+backends_all=internal,light,xbacklight
+
+# Default parameters
+
+delay=0.1
+grab=true
+log_level=info
+log_color=false
+
+max_color=35
+maxbright=100
+minbright=1
+
+acpi_dev=
+backends="${backends_all}"
+backend_args=
+
+for vdev in /dev/video* ; do break; done
+
+# Config - find & load or create new
+
+print_options() {
+        while [ $# -gt 0 ]; do
+                eval echo "$1=\$$1"
+                shift
+        done
+}
+
+# Search for either config file or writable config dir
+for config_dir in "${XDG_CONFIG_PATH}" ~/.config /etc ; do
+        [ -f "${config_dir}/${progname}" -o \( -d "${config_dir}" -a -w "${config_dir}" \) ] && break
+        config_dir=
+done
+
+# Either read existing or create new config
+if [ -n "${config_dir}" ]
+then
+	config_file="${config_dir}/${progname}"
+	if [ -f "${config_file}" ]
+	then
+	        { while IFS='=' read name v; do
+        	        case $name in
+	                acpi_dev    ) acpi_dev="$v";     continue;;
+                	backend_args) backend_args="$v"; continue;;
+        	        backends    ) backends="$v";     continue;;
+	                delay       ) delay="$v";        continue;;
+                	grab        ) grab="$v";         continue;;
+        	        log_level   ) log_level="$v";    continue;;
+			log_color   ) log_color="$v";    continue;;
+	                maxbright   ) maxbright="$v";    continue;;
+        	        max_color   ) max_color="$v";    continue;;
+	                minbright   ) minbright="$v";    continue;;
+                	esac
+        	done; } < ~/.config/${progname}
+	elif touch "${config_file}"; then
+        	print_options delay grab log_level log_color max_color maxbright minbright acpi_dev backends backend_args | sort > "${config_file}"
+	else
+		unset config_file
+	fi
+fi
+
+show_help() {
+	echo "Usage: $(basename $0) [options] -- [backend options]"
+	echo "Options:"
+	echo "-d, --delay     FLOAT       Snapshots delay (seconds)"
+	echo "-g, --no-grab               Don't keep camera busy all time"
+	echo "-A, --no-acpi               Don't use ACPI directly"
+	echo "-a, --acpi-dev  NAME        ACPI device to be controlled"
+	echo "-v, --video-dev DEVICE      Video device used as sensor (e.g. /dev/video0)"
+	echo "-b, --backends  STR,STR...  Comma-separated list of backlight control backends"
+	echo "-B, --list-backends         List available backends"
+	echo "-q, --log       STRING      Log verbosity. One of: error, warning, info, debug"
+	echo "-c, --color     BOOLEAN     Colorize output"
+	echo "    --bl-max    FLOAT       Maximum backlight level (%)"
+	echo "    --bl-min    FLOAT       Minimum backlight level (%)"
+	echo "    --max-color INTEGER     Color value for full backlight level"
+	echo "-h, --help                  Show this help"
+}
+
+# Arguments loading
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	'-d' | '--delay' ) delay="$2"
+		shift ;;
+	'-g' | '--no-grab' ) grab=false ;;
+	'-A' | '--no-acpi' ) acpi=false ;;
+	'-l' | '--log' )   log_level=$2
+		shift ;;
+	'-c' | '--color'   )
+		case "$2" in
+		true ) log_color=true;;
+		false) log_color=false;;
+		esac
+		shift ;;
+	'--bl-max' )  maxbright="$2"
+		shift ;;
+	'--bl-min' ) minbright="$2"
+		shift ;;
+	'--max-color' )	max_color="$2"
+		shift ;;
+	'-a' | '--acpi-dev' ) acpi_dev="$2"
+		shift ;;
+	'-v' | '--video-dev' ) vdev="$2"
+		shift ;;
+	'-b' | '--backends' ) backends="$2"
+		shift ;;
+	'-B' | '--list-backends' ) echo "${backends_all}"
+		exit ;;
+	'-h' | '--help' ) show_help
+		exit ;;
+	'--' ) backend_args="$*"
+		break ;;
+	esac
+	shift
+done
+
+# Configure terminal font controls
+
+if ! ${log_color}; then
+        tput() { :; }
+fi
+
+# create color table
+i=0; for c in black red green yellow blue pink cyan gray; do
+        eval "$c=$i"
+        i=$(( i+1 ))
+done; unset i c
+isnum() {
+        for n in "$@"; do case ${n#[+-]} in
+        ''|*[!0-9.]* | '.' | *.*.*) return 1
+        esac; done
+}
+# color set helper
+col() {
+        if isnum $1; then
+                tput setaf $1
+        else
+                eval tput setaf \$$1
+        fi
+        if [ $# -gt 2 ]; then
+                if isnum $2; then
+                        tput setab $2
+                else
+                        eval tput setab \$$2
+                fi
+        fi
+}
+# other control strings
+bold="$(tput bold)"
+sgr0="$(tput sgr0)"
+
+# Loging features
+
+i=0; for l in error warning info debug; do
+        eval $l=$i
+        i=$(( i+1 ))
+done; unset i l
+eval log_level=\$$log_level
+
+msg_color() {
+        local c=$1
+        shift
+        echo "$(col $c)$*$sgr0"
+}
+msg_debug()   { [ $log_level -ge $debug   ] && echo "$*${sgr0}"; }
+msg_info()    { [ $log_level -ge $info    ] && msg_color blue   "$*"; }
+msg_warning() { [ $log_level -ge $warning ] && msg_color yellow "$*"; }
+msg_error()   { [ $log_level -ge $error   ] && msg_color red    "$*"; }
+
+fatal() {
+        msg_error "$@"
+        exit 1
+}
+
+msg_info "Config file: ${bold}$(col green)${config_file}"
+
+# Depepdency check
+
+msg_info "Checking dependencies"
+for dep in ffmpeg tr hexdump awk; do
+	if ! [ "$(which $dep 2>/dev/null)" ]; then
+		msg_error "${dep} executable required but not found"
+		abort=1
+	fi
+done
+if [ "$abort" ]; then
+	exit 1
+fi
+
+# Choose backlight control tool
+
+msg_info "Searching usable backend"
+if [ ! "${backends}" ]; then
+	fatal "Backends are not set"
+fi
+backends="$( echo "$backends" | tr ',' ' ' )"
+for backend in $backends; do
+	msg_info "Checking backend ${bold}$(col green)$backend"
+	case "$backend" in
+	light )
+		which ${backend} >/dev/null 2>&1 || continue
+		bl_cmd='light -S '
+		break
+	;;
+	xbacklight )
+		which ${backend} >/dev/null 2>&1 || continue
+		bl_cmd='xbacklight -set '
+		break
+	;;
+	internal )
+		acpi_dir="/sys/class/backlight"
+
+		# ACPI dir exists and is not empty
+		if ! [ -d "${acpi_dir}" ] ; then
+			msg_error "No ACPI support found"
+			break
+		fi
+
+
+		# Use first entry if acpi_dev not set
+		if [ "${acpi_dev}" ] && { [ -d "${acpi_dir}/${acpi_dev}" ] || ! msg_warning "ACPI device ${acpi_dev} not found"; }; then
+			acpi_dir="${acpi_dir}/${acpi_dev}"
+		else
+			for acpi_dir in "${acpi_dir}"/* ; do break; done
+			if ! [ -d "${acpi_dir}" -a -f "${acpi_dir}/brightness" ]; then
+				msg_error "No ACPI backlight devices found"
+				break
+			fi
+		fi
+		
+		# Translate brightness limits to raw backlight range
+		maxbright=$(( maxbright * $(cat ${acpi_dir}/max_brightness) / 100 ))
+        	minbright=$(( minbright * $(cat ${acpi_dir}/max_brightness) / 100 ))
+
+		break
+	;;
+	esac
+	backend=
+done
+if [ ! "${backend}" ]; then
+	fatal "No working backends found"
+fi
+msg_info "Using backend ${bold}$(col green)${backend}"
+
+# Setup temporary dir
+
+for path in "/var/run" "${XDG_RUNTIME_DIR}" "/tmp" "~/.cache"; do
+	# Check base path
+	[ "${path}" -a -d "${path}" -a -w "${path}" ] || continue
+	tmpdir="${path}/${progname}"
+	pidfile="$tmpdir/pid"
+	break
+done
+# No place for tmpdir
+if [ ! "${tmpdir}" ]; then
+	fatal "Can't find place for temporary directory"
+fi
+msg_info "Temporary directory: ${bold}$(col green)${tmpdir}"
+
+if [ ! -e "${tmpdir}" ]; then
+	mkdir -p "${tmpdir}"
+elif ! [ -d "${path}" -a -w "${path}" ]; then
+	fatal "$tmpdir: Not a directory"
+elif [ -f "$pidfile" ]; then
+	# We are singleton
+
+	read pid < $pidfile
+	if [ "$pid" -a "$(ps $pid | grep $pid)" ] ; then
+		msg_warning "Found runing instance, exiting."
+		exit
+	fi
+fi
+
+echo "$$" > "$pidfile"
+
+# Processing pipeline
+
+msg_debug '=== Processing start ==='
+b='stdbuf -oL'
+frames=$($grab || echo -frames 1)
+ffmpeg_cmd='stdbuf -o0 ffmpeg -f v4l2 -s 1x1 -i "${vdev}" ${frames} -vcodec rawvideo -vf scale="1:1",lutyuv="u=128:v=128" -f rawvideo -pix_fmt gray -r 1/${delay} -'
+{ 
+	if $grab; then
+		eval exec "${ffmpeg_cmd}"
+	else while sleep $delay & tpid=$!; do
+		eval "${ffmpeg_cmd}"
+		wait $tpid;
+	done; fi
+} 2>/dev/null |\
+	stdbuf -o0 tr    "$(printf "[\%03o-\%03o]" $((max_color+1)) 255     )"  \
+	                 "$(printf "\%03o" $max_color)"                        |\
+	stdbuf -o0 tr -s "$(printf "[\%03o-\%03o]" 0                            \
+	                                           $max_color )"               |\
+	$b hexdump -e '1/1 "%u\n"'                                             |\
+	$b awk \
+	-v "quiet=$([ $log_level -ge $debug ] && echo 0 || echo 1)" \
+	-v "ctl_file=${acpi_dir}/brightness"                        \
+	-v "bl_cmd=${bl_cmd}"                                       \
+	-v "bl_args=${backend_args}"                                \
+	'{
+		bl = $1 * '${maxbright}' / '$max_color'
+		bl = bl > '${maxbright}' ? '${maxbright}' : bl < '${minbright}' ? '${minbright}' : bl
+		if (! quiet) {
+                        printf ("brightness: %.02f%% value: %u\n", 100 * bl / '${maxbright}', $1)
+                }
+		if (bl_cmd) {
+			system (bl_cmd bl bl_args)
+			next
+		}
+		printf ("%u\n",bl) > ctl_file
+		fflush (ctl_file)
+	}' &
+procpid="$(jobs -p)"
+
+# Event handlers
+
+quit() {
+	state=int
+	kill $procpid
+}
+
+restart() {
+	state=restart
+	kill $procpid
+}
+
+state=run
+trap "quit"    INT TERM QUIT HUP
+trap "restart" USR1
+
+# Monitor config changes
+if [ -n "$config_file" ]; then {
+	inotifywait -q -e modify "$config_file"
+	msg_info "Configuration changed"
+	kill -s USR1 $$
+} & monpid=$!; fi
+
+# Waiting
+
+msg_debug "Waiting for events"
+
+wait $procpid
+if [ -n "$monpid" ]; then
+	kill $monpid
+fi
+
+case $state in
+'int'    )
+	msg_info Interrupted; 
+	exit ;;
+'restart')
+	msg_info 'Restart...'; rm $pidfile; 
+	eval exec "$0 $startup_args" ;;
+'run'    )
+	msg_warning 'Pipeline terminated on its own'; 
+	exit ;;
+esac
+

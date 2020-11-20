@@ -1,0 +1,10 @@
+Adaptive backlight daemon, using camera as sensor.
+
+Dependencies:
+- FFMpeg
+- GNU awk
+- GNU coreutils
+
+Optional backends:
+- light: https://github.com/haikarainen/light
+- xbacklight
