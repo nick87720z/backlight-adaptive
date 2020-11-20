@@ -194,6 +194,18 @@ fatal() {
 
 msg_info "Config file: ${bold}$(col green)${config_file}"
 
+# Shell feature test
+
+# jobs in command substitution
+sleep 99999 &
+p=$!
+j=$(jobs -p)
+kill $p
+if [ -z "$j" ]; then
+        fatal "bad posix shell: jobs in command substitution are unsupported"
+fi
+unset j p
+
 # Depepdency check
 
 msg_info "Checking dependencies"
