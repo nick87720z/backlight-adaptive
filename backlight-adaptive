@@ -298,7 +298,8 @@ echo "$$" > "$pidfile"
 msg_debug '=== Processing start ==='
 b='stdbuf -oL'
 frames=$($grab || echo -frames 1)
-ffmpeg_cmd='stdbuf -o0 ffmpeg -f v4l2 -s 1x1 -i "${vdev}" ${frames} -vcodec rawvideo -vf scale="1:1",lutyuv="u=128:v=128" -f rawvideo -pix_fmt gray -r 1/${delay} -'
+bl_mul=$( echo | awk "{print $max_color / 255}" )
+ffmpeg_cmd='stdbuf -o0 ffmpeg -f v4l2 -s 1x1 -i "${vdev}" ${frames} -vcodec rawvideo -vf scale="1:1",curves=all="0/0 ${bl_mul}/1",lutyuv="u=128:v=128" -f rawvideo -pix_fmt gray -r 1/${delay} -'
 { 
 	if $grab; then
 		eval exec "${ffmpeg_cmd}"
@@ -307,18 +308,15 @@ ffmpeg_cmd='stdbuf -o0 ffmpeg -f v4l2 -s 1x1 -i "${vdev}" ${frames} -vcodec rawv
 		wait $tpid;
 	done; fi
 } 2>/dev/null |\
-	stdbuf -o0 tr    "$(printf "[\%03o-\%03o]" $((max_color+1)) 255     )"  \
-	                 "$(printf "\%03o" $max_color)"                        |\
-	stdbuf -o0 tr -s "$(printf "[\%03o-\%03o]" 0                            \
-	                                           $max_color )"               |\
-	$b hexdump -e '1/1 "%u\n"'                                             |\
+	stdbuf -o0 tr -s "$(printf "[\%03o-\%03o]" 0 255 )"  |\
+	$b hexdump -e '1/1 "%u\n"'                           |\
 	$b awk \
 	-v "quiet=$([ $log_level -ge $debug ] && echo 0 || echo 1)" \
 	-v "ctl_file=${acpi_dir}/brightness"                        \
 	-v "bl_cmd=${bl_cmd}"                                       \
 	-v "bl_args=${backend_args}"                                \
 	'{
-		bl = $1 * '${maxbright}' / '$max_color'
+		bl = $1 * '${maxbright}' / 255
 		bl = bl > '${maxbright}' ? '${maxbright}' : bl < '${minbright}' ? '${minbright}' : bl
 		if (! quiet) {
                         printf ("brightness: %.02f%% value: %u\n", 100 * bl / '${maxbright}', $1)
