@@ -88,7 +88,7 @@ show_help() {
 	echo "-v, --video-dev DEVICE      Video device used as sensor (e.g. /dev/video0)"
 	echo "-b, --backends  STR,STR...  Comma-separated list of backlight control backends"
 	echo "-B, --list-backends         List available backends"
-	echo "-q, --log       STRING      Log verbosity. One of: error, warning, info, debug"
+	echo "-l, --log       STRING      Log verbosity. One of: error, warning, info, debug"
 	echo "-c, --color     BOOLEAN     Colorize output"
 	echo "    --bl-max    FLOAT       Maximum backlight level (%)"
 	echo "    --bl-min    FLOAT       Minimum backlight level (%)"
