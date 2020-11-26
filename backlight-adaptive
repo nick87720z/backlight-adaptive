@@ -85,7 +85,6 @@ show_help() {
         echo "Options:"
         echo "-d, --delay     FLOAT       Snapshots delay (seconds)"
         echo "-g, --no-grab               Don't keep camera busy all time"
-        echo "-A, --no-acpi               Don't use ACPI directly"
         echo "-a, --acpi-dev  NAME        ACPI device to be controlled"
         echo "-v, --video-dev DEVICE      Video device used as sensor (e.g. /dev/video0)"
         echo "-b, --backends  STR,STR...  Comma-separated list of backlight control backends"
@@ -105,7 +104,6 @@ while [ $# -gt 0 ]; do
         '-d' | '--delay' ) delay="$2"
         	shift ;;
         '-g' | '--no-grab' ) grab=false ;;
-        '-A' | '--no-acpi' ) acpi=false ;;
         '-l' | '--log' )   log_level=$2
         	shift ;;
         '-c' | '--color'   )
