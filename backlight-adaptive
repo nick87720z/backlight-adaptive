@@ -69,6 +69,9 @@ then
                         maxbright   ) maxbright="$v";    continue;;
                         max_color   ) max_color="$v";    continue;;
                         minbright   ) minbright="$v";    continue;;
+                        * )
+                                echo "Unknown config option '${name}'"
+                                continue;;
                         esac
                 done; } < ~/.config/${progname}
         elif touch "${config_file}"; then
