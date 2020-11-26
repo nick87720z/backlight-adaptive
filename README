@@ -2,6 +2,7 @@ Adaptive backlight daemon, using camera as sensor.
 
 Dependencies:
 - FFMpeg
+- hexdump
 - GNU awk
 - GNU coreutils
 
