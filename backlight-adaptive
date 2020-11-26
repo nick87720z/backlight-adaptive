@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+set -m -b
+
 startup_args="$*"
 progname=backlight-adaptive
 backends_all=internal,light,xbacklight
@@ -311,15 +313,15 @@ msg_debug '=== Processing start ==='
 b='stdbuf -oL'
 frames=$($grab || echo -frames 1)
 bl_mul=$( echo | awk "{print $max_color / 255}" )
-ffmpeg_cmd='stdbuf -o0 ffmpeg -f v4l2 -s 1x1 -i "${vdev}" ${frames} -vcodec rawvideo -vf scale="1:1",curves=all="0/0 ${bl_mul}/1",lutyuv="u=128:v=128" -f rawvideo -pix_fmt gray -r 1/${delay} -'
-{ 
+ffmpeg_cmd='stdbuf -o0 ffmpeg -v debug -f v4l2 -s 1x1 -i "${vdev}" ${frames} -vcodec rawvideo -vf scale="1:1",curves=all="0/0 ${bl_mul}/1",lutyuv="u=128:v=128" -f rawvideo -pix_fmt gray -r 1/${delay} -'
+( { 
 	if $grab; then
 		eval exec "${ffmpeg_cmd}"
 	else while sleep $delay & tpid=$!; do
 		eval "${ffmpeg_cmd}"
 		wait $tpid;
 	done; fi
-} 2>/dev/null |\
+  } </dev/null 2>/dev/null |\
 	stdbuf -o0 tr -s "$(printf "[\%03o-\%03o]" 0 255 )"  |\
 	$b hexdump -e '1/1 "%u\n"'                           |\
 	$b awk \
@@ -339,19 +341,24 @@ ffmpeg_cmd='stdbuf -o0 ffmpeg -f v4l2 -s 1x1 -i "${vdev}" ${frames} -vcodec rawv
 		}
 		printf ("%u\n",bl) > ctl_file
 		fflush (ctl_file)
-	}' &
-procpid="$(jobs -p)"
+	}'
+) & procpid=$!
 
 # Event handlers
 
+kill_quiet() { {
+        kill -- -$1
+        wait $1
+} 2>/dev/null; }
+
 quit() {
 	state=int
-	kill $procpid
+        kill_quiet $procpid
 }
 
 restart() {
 	state=restart
-	kill $procpid
+        kill_quiet $procpid
 }
 
 state=run
@@ -368,11 +375,8 @@ if [ -n "$config_file" ]; then {
 # Waiting
 
 msg_debug "Waiting for events"
-
 wait $procpid
-if [ -n "$monpid" ]; then
-	kill $monpid
-fi
+kill_quiet $monpid
 
 case $state in
 'int'    )
