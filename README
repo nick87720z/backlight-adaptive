@@ -5,6 +5,7 @@ Dependencies:
 - hexdump
 - GNU awk
 - GNU coreutils
+- inotify-tools
 
 Optional backends:
 - light: https://github.com/haikarainen/light
