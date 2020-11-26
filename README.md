@@ -41,9 +41,9 @@ Disable colors:
 Configuration file is automatically created if no other file exists and writeable config directory is found.
 Possible places for configuration file:
 
-$XDG_CONFIG_DIR
-~/.config
-/etc
+- $XDG_CONFIG_DIR
+- ~/.config
+- /etc
 
 ## Under hood
 
@@ -51,5 +51,5 @@ Shell script, runing persistant ffmpeg-based pipeline.
 
 ## Known alternatives
 
-[Clight](https://github.com/FedeDP/Clight)
-[calise](https://sourceforge.net/projects/calise/)
+- [Clight](https://github.com/FedeDP/Clight)
+- [calise](https://sourceforge.net/projects/calise/)
