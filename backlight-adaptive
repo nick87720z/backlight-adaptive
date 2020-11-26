@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 #
 # Copyright (c) 2020 Nikita Zlobin <nick87720z@gmail.com>
 #
