@@ -305,9 +305,8 @@ ffmpeg_cmd='stdbuf -o0 ffmpeg -v debug -f v4l2 -s 1x1 -i "${vdev}" ${frames} -vc
 ( { 
         if $grab; then
         	eval exec "${ffmpeg_cmd}"
-        else while sleep $delay & tpid=$!; do
-        	eval "${ffmpeg_cmd}"
-        	wait $tpid;
+        else while :; do
+        	sleep $delay | eval "${ffmpeg_cmd}"
         done; fi
   } </dev/null 2>/dev/null |\
         stdbuf -o0 tr -s "$(printf "[\%03o-\%03o]" 0 255 )"  |\
