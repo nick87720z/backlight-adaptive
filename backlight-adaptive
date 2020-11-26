@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-set -m -b
-
 startup_args="$*"
 progname=backlight-adaptive
 backends_all=internal,light,xbacklight
@@ -295,6 +293,8 @@ echo "$$" > "$pidfile"
 
 # Processing pipeline
 
+set -m
+
 msg_debug '=== Processing start ==='
 b='stdbuf -oL'
 frames=$($grab || echo -frames 1)
@@ -356,6 +356,9 @@ if [ -n "$config_file" ]; then {
         msg_info "Configuration changed"
         kill -s USR1 $$
 } & monpid=$!; fi
+
+# silence job control
+set +m
 
 # Waiting
 
