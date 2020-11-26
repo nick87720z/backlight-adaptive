@@ -291,6 +291,21 @@ fi
 
 echo "$$" > "$pidfile"
 
+# Even loop setup
+
+quit() {
+        state=int
+        kill -- -$procpid
+}
+
+restart() {
+        state=restart
+        kill -- -$procpid
+}
+
+trap "quit"    INT TERM QUIT HUP
+trap "restart" USR1
+
 # Processing pipeline
 
 set -m
@@ -329,26 +344,7 @@ ffmpeg_cmd='stdbuf -o0 ffmpeg -v debug -f v4l2 -s 1x1 -i "${vdev}" ${frames} -vc
         }'
 ) & procpid=$!
 
-# Event handlers
-
-kill_quiet() { {
-        kill -- -$1
-        wait $1
-} 2>/dev/null; }
-
-quit() {
-        state=int
-        kill_quiet $procpid
-}
-
-restart() {
-        state=restart
-        kill_quiet $procpid
-}
-
 state=run
-trap "quit"    INT TERM QUIT HUP
-trap "restart" USR1
 
 # Monitor config changes
 if [ -n "$config_file" ]; then {
@@ -364,7 +360,7 @@ set +m
 
 msg_debug "Waiting for events"
 wait $procpid
-kill_quiet $monpid
+kill -- -$monpid
 
 case $state in
 'int'    )
