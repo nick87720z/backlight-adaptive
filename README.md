@@ -24,7 +24,11 @@ Adaptive backlight daemon, using camera as light sensor.
 
 ## Usage
 
+Run with default settings:
 `$ backlight-adaptive`
+
+Toggle running - either start new or terminate existing instance:
+`$ backlight-adaptive -t`
 
 Type `backlight-adaptive -h` for more options
 
