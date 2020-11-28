@@ -34,6 +34,8 @@ acpi_dev=
 backends="${backends_all}"
 backend_args=
 
+toggle=false
+
 for vdev in /dev/video* ; do break; done
 
 # Config - find & load or create new
@@ -95,6 +97,7 @@ show_help() {
         echo "    --bl-max    FLOAT       Maximum backlight level (%)"
         echo "    --bl-min    FLOAT       Minimum backlight level (%)"
         echo "    --max-color INTEGER     Color value for full backlight level"
+        echo "-t, --toggle                Stop runing instance or run as new"
         echo "-h, --help                  Show this help"
 }
 
@@ -127,6 +130,7 @@ while [ $# -gt 0 ]; do
         	shift ;;
         '-B' | '--list-backends' ) echo "${backends_all}"
         	exit ;;
+        '-t' | '--toggle' ) toggle=true;;
         '-h' | '--help' ) show_help
         	exit ;;
         '--' ) backend_args="$*"
@@ -287,8 +291,13 @@ elif [ -f "$pidfile" ]; then
 
         read pid < $pidfile
         if [ "$pid" -a "$(ps $pid | grep $pid)" ] ; then
-        	msg_warning "Found runing instance, exiting."
-        	exit
+                if $toggle; then
+                        msg_info "Terminating instance $pid"
+                        kill $pid
+                else
+        	        msg_warning "Found runing instance, exiting."
+                fi
+                exit
         fi
 fi
 
