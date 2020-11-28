@@ -198,7 +198,7 @@ msg_info "Config file: ${bold}$(col green)${config_file}"
 # Depepdency check
 
 msg_info "Checking dependencies"
-for dep in inotifywait ffmpeg tr hexdump awk; do
+for dep in inotifywait ffmpeg tr hexdump awk v4l2-ctl; do
         if ! [ "$(which $dep 2>/dev/null)" ]; then
         	msg_error "${dep} executable required but not found"
         	abort=1

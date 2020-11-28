@@ -15,6 +15,7 @@ Adaptive backlight daemon, using camera as light sensor.
 - [coreutils](https://www.gnu.org/software/coreutils/)
 - [awk](https://www.gnu.org/software/gawk/gawk.html)
 - [inotify-tools](https://github.com/inotify-tools/inotify-tools)
+- [v4l-utils](https://git.linuxtv.org/v4l-utils.git)
 
 **Optional (alternative)**
 
