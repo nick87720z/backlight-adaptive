@@ -327,6 +327,8 @@ trap "restart" USR1
 
 set -m
 
+msg_info "Smoothing duration: $fade_frames frames"
+
 msg_debug '=== Processing start ==='
 b='stdbuf -oL'
 frames=$($grab || echo -frames 1)
