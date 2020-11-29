@@ -67,7 +67,7 @@ then
                         delay       ) delay="$v";        continue;;
                         grab        ) grab="$v";         continue;;
                         log_level   ) log_level="$v";    continue;;
-        		log_color   ) log_color="$v";    continue;;
+                        log_color   ) log_color="$v";    continue;;
                         maxbright   ) maxbright="$v";    continue;;
                         max_color   ) max_color="$v";    continue;;
                         minbright   ) minbright="$v";    continue;;
@@ -79,7 +79,7 @@ then
         elif touch "${config_file}"; then
                 print_options delay grab log_level log_color max_color maxbright minbright acpi_dev backends backend_args | sort > "${config_file}"
         else
-        	unset config_file
+                unset config_file
         fi
 fi
 
@@ -106,35 +106,35 @@ show_help() {
 while [ $# -gt 0 ]; do
         case $1 in
         '-d' | '--delay' ) delay="$2"
-        	shift ;;
+                shift ;;
         '-g' | '--no-grab' ) grab=false ;;
         '-l' | '--log' )   log_level=$2
-        	shift ;;
+                shift ;;
         '-c' | '--color'   )
-        	case "$2" in
-        	true ) log_color=true;;
-        	false) log_color=false;;
-        	esac
-        	shift ;;
+                case "$2" in
+                true ) log_color=true;;
+                false) log_color=false;;
+                esac
+                shift ;;
         '--bl-max' )  maxbright="$2"
-        	shift ;;
+                shift ;;
         '--bl-min' ) minbright="$2"
-        	shift ;;
-        '--max-color' )	max_color="$2"
-        	shift ;;
+                shift ;;
+        '--max-color' ) max_color="$2"
+                shift ;;
         '-a' | '--acpi-dev' ) acpi_dev="$2"
-        	shift ;;
+                shift ;;
         '-v' | '--video-dev' ) vdev="$2"
-        	shift ;;
+                shift ;;
         '-b' | '--backends' ) backends="$2"
-        	shift ;;
+                shift ;;
         '-B' | '--list-backends' ) echo "${backends_all}"
-        	exit ;;
+                exit ;;
         '-t' | '--toggle' ) toggle=true;;
         '-h' | '--help' ) show_help
-        	exit ;;
+                exit ;;
         '--' ) backend_args="$*"
-        	break ;;
+                break ;;
         esac
         shift
 done
@@ -204,8 +204,8 @@ msg_info "Config file: ${bold}$(col green)${config_file}"
 msg_info "Checking dependencies"
 for dep in inotifywait ffmpeg tr hexdump awk v4l2-ctl; do
         if ! [ "$(which $dep 2>/dev/null)" ]; then
-        	msg_error "${dep} executable required but not found"
-        	abort=1
+                msg_error "${dep} executable required but not found"
+                abort=1
         fi
 done
 if [ "$abort" ]; then
@@ -223,41 +223,41 @@ for backend in $backends; do
         msg_info "Checking backend ${bold}$(col green)$backend"
         case "$backend" in
         light )
-        	which ${backend} >/dev/null 2>&1 || continue
-        	bl_cmd='light -S '
-        	break
+                which ${backend} >/dev/null 2>&1 || continue
+                bl_cmd='light -S '
+                break
         ;;
         xbacklight )
-        	which ${backend} >/dev/null 2>&1 || continue
-        	bl_cmd='xbacklight -set '
-        	break
+                which ${backend} >/dev/null 2>&1 || continue
+                bl_cmd='xbacklight -set '
+                break
         ;;
         internal )
-        	acpi_dir="/sys/class/backlight"
+                acpi_dir="/sys/class/backlight"
 
-        	# ACPI dir exists and is not empty
-        	if ! [ -d "${acpi_dir}" ] ; then
-        		msg_error "No ACPI support found"
-        		break
-        	fi
+                # ACPI dir exists and is not empty
+                if ! [ -d "${acpi_dir}" ] ; then
+                        msg_error "No ACPI support found"
+                        break
+                fi
 
 
-        	# Use first entry if acpi_dev not set
-        	if [ "${acpi_dev}" ] && { [ -d "${acpi_dir}/${acpi_dev}" ] || ! msg_warning "ACPI device ${acpi_dev} not found"; }; then
-        		acpi_dir="${acpi_dir}/${acpi_dev}"
-        	else
-        		for acpi_dir in "${acpi_dir}"/* ; do break; done
-        		if ! [ -d "${acpi_dir}" -a -f "${acpi_dir}/brightness" ]; then
-        			msg_error "No ACPI backlight devices found"
-        			break
-        		fi
-        	fi
-        	
-        	# Translate brightness limits to raw backlight range
-        	maxbright=$(( maxbright * $(cat ${acpi_dir}/max_brightness) / 100 ))
+                # Use first entry if acpi_dev not set
+                if [ "${acpi_dev}" ] && { [ -d "${acpi_dir}/${acpi_dev}" ] || ! msg_warning "ACPI device ${acpi_dev} not found"; }; then
+                        acpi_dir="${acpi_dir}/${acpi_dev}"
+                else
+                        for acpi_dir in "${acpi_dir}"/* ; do break; done
+                        if ! [ -d "${acpi_dir}" -a -f "${acpi_dir}/brightness" ]; then
+                                msg_error "No ACPI backlight devices found"
+                                break
+                        fi
+                fi
+                
+                # Translate brightness limits to raw backlight range
+                maxbright=$(( maxbright * $(cat ${acpi_dir}/max_brightness) / 100 ))
                 minbright=$(( minbright * $(cat ${acpi_dir}/max_brightness) / 100 ))
 
-        	break
+                break
         ;;
         esac
         backend=
@@ -295,7 +295,7 @@ elif [ -f "$pidfile" ]; then
                         msg_info "Terminating instance $pid"
                         kill $pid
                 else
-        	        msg_warning "Found runing instance, exiting."
+                        msg_warning "Found runing instance, exiting."
                 fi
                 exit
         fi
@@ -330,9 +330,9 @@ r_in=$( v4l2-ctl --device /dev/video0 -p $(echo | awk "{ print 1/${delay} }") | 
 ffmpeg_cmd='stdbuf -o0 ffmpeg -v info -f v4l2 -s 1x1 -r ${r_in} -i "${vdev}" ${frames} -vcodec rawvideo -vf scale="1:1:flags=fast_bilinear",curves=all="0/0 ${bl_mul}/1" -f rawvideo -pix_fmt gray -r 1/${delay} -'
 ( { 
         if $grab; then
-        	eval exec "${ffmpeg_cmd}"
+                eval exec "${ffmpeg_cmd}"
         else while :; do
-        	sleep $delay | eval "${ffmpeg_cmd}"
+                sleep $delay | eval "${ffmpeg_cmd}"
         done; fi
   } </dev/null 2>/dev/null |\
         stdbuf -o0 tr -s "$(printf "[\%03o-\%03o]" 0 255 )"  |\
@@ -343,17 +343,17 @@ ffmpeg_cmd='stdbuf -o0 ffmpeg -v info -f v4l2 -s 1x1 -r ${r_in} -i "${vdev}" ${f
         -v "bl_cmd=${bl_cmd}"                                       \
         -v "bl_args=${backend_args}"                                \
         '{
-        	bl = $1 * '${maxbright}' / 255
-        	bl = bl > '${maxbright}' ? '${maxbright}' : bl < '${minbright}' ? '${minbright}' : bl
-        	if (! quiet) {
+                bl = $1 * '${maxbright}' / 255
+                bl = bl > '${maxbright}' ? '${maxbright}' : bl < '${minbright}' ? '${minbright}' : bl
+                if (! quiet) {
                         printf ("brightness: %.02f%% value: %u\n", 100 * bl / '${maxbright}', $1)
                 }
-        	if (bl_cmd) {
-        		system (bl_cmd bl bl_args)
-        		next
-        	}
-        	printf ("%u\n",bl) > ctl_file
-        	fflush (ctl_file)
+                if (bl_cmd) {
+                        system (bl_cmd bl bl_args)
+                        next
+                }
+                printf ("%u\n",bl) > ctl_file
+                fflush (ctl_file)
         }'
 ) & procpid=$!
 
