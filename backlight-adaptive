@@ -29,6 +29,7 @@ log_color=false
 max_color=35
 maxbright=100
 minbright=1
+fade_frames=0
 
 acpi_dev=
 backends="${backends_all}"
@@ -65,6 +66,7 @@ then
                         backend_args) backend_args="$v"; continue;;
                         backends    ) backends="$v";     continue;;
                         delay       ) delay="$v";        continue;;
+                        fade_frames ) fade_frames="$v";  continue;;
                         grab        ) grab="$v";         continue;;
                         log_level   ) log_level="$v";    continue;;
                         log_color   ) log_color="$v";    continue;;
@@ -77,7 +79,7 @@ then
                         esac
                 done; } < ~/.config/${progname}
         elif touch "${config_file}"; then
-                print_options delay grab log_level log_color max_color maxbright minbright acpi_dev backends backend_args | sort > "${config_file}"
+                print_options fade_frames delay grab log_level log_color max_color maxbright minbright acpi_dev backends backend_args | sort > "${config_file}"
         else
                 unset config_file
         fi
@@ -97,6 +99,7 @@ show_help() {
         echo "    --bl-max    FLOAT       Maximum backlight level (%)"
         echo "    --bl-min    FLOAT       Minimum backlight level (%)"
         echo "    --max-color INTEGER     Color value for full backlight level"
+        echo "-s, --smooth    INTEGER     Light change smoothness (frames)"
         echo "-t, --toggle                Stop runing instance or run as new"
         echo "-h, --help                  Show this help"
 }
@@ -121,6 +124,8 @@ while [ $# -gt 0 ]; do
         '--bl-min' ) minbright="$2"
                 shift ;;
         '--max-color' ) max_color="$2"
+                shift ;;
+        '-s' | '--smooth' ) fade_frames="$2"
                 shift ;;
         '-a' | '--acpi-dev' ) acpi_dev="$2"
                 shift ;;
@@ -327,7 +332,7 @@ b='stdbuf -oL'
 frames=$($grab || echo -frames 1)
 bl_mul=$( echo | awk "{print $max_color / 255}" )
 r_in=$( v4l2-ctl --device /dev/video0 -p $(echo | awk "{ print 1/${delay} }") | awk '{print $5}' )
-ffmpeg_cmd='stdbuf -o0 ffmpeg -v info -f v4l2 -s 1x1 -r ${r_in} -i "${vdev}" ${frames} -vcodec rawvideo -vf scale="1:1:flags=fast_bilinear",curves=all="0/0 ${bl_mul}/1" -f rawvideo -pix_fmt gray -r 1/${delay} -'
+ffmpeg_cmd='stdbuf -o0 ffmpeg -v info -f v4l2 -s 1x1 -r ${r_in} -i "${vdev}" ${frames} -vcodec rawvideo -vf scale="1:1:flags=fast_bilinear",curves=all="0/0 ${bl_mul}/1"$([ $fade_frames -gt 0 ] && echo ,tmix=frames=${fade_frames}) -f rawvideo -pix_fmt gray -r 1/${delay} -'
 ( { 
         if $grab; then
                 eval exec "${ffmpeg_cmd}"

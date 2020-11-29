@@ -1,6 +1,7 @@
 Adaptive backlight daemon, using camera as light sensor.
 
 ## Features
+- backlight change smoothing
 - no systemd dependency
 - effective: up to 30fps for camera input without notable performance losses
 - no need for X, backlight is controlled via ACPI (though xbacklight is supported too)
