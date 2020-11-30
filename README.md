@@ -12,7 +12,6 @@ Adaptive backlight daemon, using camera as light sensor.
 
 - posix shell (tested with [GNU Bash](http://tiswww.case.edu/php/chet/bash/bashtop.html) and [Dash](http://gondor.apana.org.au/~herbert/dash/))
 - [FFMpeg](https://ffmpeg.org/)
-- [util-linux](https://github.com/karelzak/util-linux)
 - [coreutils](https://www.gnu.org/software/coreutils/)
 - [awk](https://www.gnu.org/software/gawk/gawk.html)
 - [inotify-tools](https://github.com/inotify-tools/inotify-tools)

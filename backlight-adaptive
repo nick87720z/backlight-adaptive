@@ -207,7 +207,7 @@ msg_info "Config file: ${bold}$(col green)${config_file}"
 # Depepdency check
 
 msg_info "Checking dependencies"
-for dep in inotifywait ffmpeg tr hexdump awk v4l2-ctl; do
+for dep in inotifywait ffmpeg tr od awk v4l2-ctl; do
         if ! [ "$(which $dep 2>/dev/null)" ]; then
                 msg_error "${dep} executable required but not found"
                 abort=1
@@ -343,7 +343,7 @@ ffmpeg_cmd='stdbuf -o0 ffmpeg -v info -f v4l2 -s 1x1 -r ${r_in} -i "${vdev}" ${f
         done; fi
   } </dev/null 2>/dev/null |\
         stdbuf -o0 tr -s "$(printf "[\%03o-\%03o]" 0 255 )"  |\
-        $b hexdump -e '1/1 "%u\n"'                           |\
+        $b od -v -An -w1 -tu1                                |\
         $b awk \
         -v "quiet=$([ $log_level -ge $debug ] && echo 0 || echo 1)" \
         -v "ctl_file=${acpi_dir}/brightness"                        \
