@@ -308,7 +308,7 @@ fi
 
 echo "$$" > "$pidfile"
 
-# Even loop setup
+# Event loop setup
 
 quit() {
         state=int
