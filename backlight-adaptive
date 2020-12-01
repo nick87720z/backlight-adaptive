@@ -352,8 +352,8 @@ $( [ $fade_frames -gt 0 ] && echo ,tmix=frames=${fade_frames} ) \
                 sleep $delay | eval "${ffmpeg_cmd}"
         done; fi
   } </dev/null 2>/dev/null |\
-        stdbuf -o0 tr -s "$(printf "[\%03o-\%03o]" 0 255 )"  |\
-        $b od -v -An -w1 -tu1                                |\
+        stdbuf -o0 tr -s "[\0-\377]"  |\
+        $b od -v -An -w1 -tu1         |\
         $b awk \
         -v "quiet=$([ $log_level -ge $debug ] && echo 0 || echo 1)" \
         -v "bl_cmd=${bl_cmd}"                                       \
