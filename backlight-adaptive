@@ -356,9 +356,7 @@ $( [ $fade_frames -gt 0 ] && echo ,tmix=frames=${fade_frames} ) \
         $b od -v -An -w1 -tu1                                |\
         $b awk \
         -v "quiet=$([ $log_level -ge $debug ] && echo 0 || echo 1)" \
-        -v "ctl_file=${acpi_dir}/brightness"                        \
         -v "bl_cmd=${bl_cmd}"                                       \
-        -v "bl_args=${backend_args}"                                \
         '{
                 bl = $1 * '${maxbright}' / 255
                 bl = bl > '${maxbright}' ? '${maxbright}' : bl < '${minbright}' ? '${minbright}' : bl
@@ -366,11 +364,10 @@ $( [ $fade_frames -gt 0 ] && echo ,tmix=frames=${fade_frames} ) \
                         printf ("brightness: %.02f%% value: %u\n", 100 * bl / '${maxbright}', $1)
                 }
                 if (bl_cmd) {
-                        system (bl_cmd bl bl_args)
-                        next
+                        printf ("%s %u %s\n", bl_cmd, bl, "'"${backend_args}"'") | "sh"
+                } else {
+                        printf ("%u\n", bl) | "cat > '"${acpi_dir}/brightness"'"
                 }
-                printf ("%u\n",bl) > ctl_file
-                fflush (ctl_file)
         }'
 ) & procpid=$!
 
