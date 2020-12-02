@@ -336,7 +336,8 @@ msg_info "Smoothing duration: $fade_frames frames"
 msg_debug '=== Processing start ==='
 b='stdbuf -oL'
 frames=$($grab || echo -frames 1)
-bl_mul=$( awk_expr "$max_color / 255" )
+imax=255.0
+bl_mul=$( awk_expr "$max_color / $imax" )
 ffmpeg_cmd='stdbuf -o0 ffmpeg -v verbose \
         -f v4l2 -s 1x1 \
         -r $( v4l2-ctl --device /dev/video0 -p $(awk_expr "1/${delay}") | awk "{print \$5}" ) \
@@ -358,13 +359,13 @@ $( [ $fade_frames -gt 0 ] && echo ,tmix=frames=${fade_frames} ) \
         -v "quiet=$([ $log_level -ge $debug ] && echo 0 || echo 1)" \
         -v "bl_cmd=${bl_cmd}"                                       \
         '{
-                bl = $1 * '${maxbright}' / 255
-                bl = bl > '${maxbright}' ? '${maxbright}' : bl < '${minbright}' ? '${minbright}' : bl
+                bl = $1 * '$maxbright' / '$imax'
+                bl = bl > '$maxbright' ? '$maxbright' : bl < '$minbright' ? '$minbright' : bl
                 if (! quiet) {
-                        printf ("brightness: %.02f%% value: %u\n", 100 * bl / '${maxbright}', $1)
+                        printf ("brightness: %.02f%% value: %u\n", 100 * bl / '$maxbright', $1)
                 }
                 if (bl_cmd) {
-                        printf ("%s %u %s\n", bl_cmd, bl, "'"${backend_args}"'") | "sh"
+                        printf ("%s %u %s\n", bl_cmd, bl, "'"$backend_args"'") | "sh"
                 } else {
                         printf ("%u\n", bl) | "cat > '"${acpi_dir}/brightness"'"
                 }
