@@ -326,7 +326,7 @@ trap "restart" USR1
 # Processing pipeline
 
 awk_expr() {
-        echo | awk "{ print $* }"
+        echo | awk -M "{ print $* }"
 }
 
 set -m
