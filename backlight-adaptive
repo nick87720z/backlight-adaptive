@@ -337,7 +337,7 @@ msg_debug '=== Processing start ==='
 b='stdbuf -oL'
 frames=$($grab || echo -frames 1)
 bl_mul=$( awk_expr "$max_color / 255" )
-ffmpeg_cmd='stdbuf -o0 ffmpeg -v info           \
+ffmpeg_cmd='stdbuf -o0 ffmpeg -v verbose \
         -f v4l2 -s 1x1 \
         -r $( v4l2-ctl --device /dev/video0 -p $(awk_expr "1/${delay}") | awk "{print \$5}" ) \
         -i "${vdev}"  \
