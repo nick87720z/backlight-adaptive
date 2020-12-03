@@ -338,25 +338,21 @@ b='stdbuf -oL'
 frames=$($grab || echo -frames 1)
 imax=255.0
 omax=65535.0
-rmin="($maxbright / $minbright)"
-bl_mul=$( awk_expr "$max_color / $imax" )
-bl_ceil=$( awk_expr "$maxbright / 65536" )
-bl_floor=$( awk_expr "$minbright / 65536" )
 bl_step=$( [ $fade_frames -gt 0 ] \
         && awk_expr "( $maxbright / $minbright )^( 1 / $fade_frames )" \
         || echo 0 )
+bl_mul=$( awk_expr "$imax * ($maxbright - $minbright) / ($max_color * $omax)" )
 ffmpeg_cmd='stdbuf -o0 ffmpeg -v verbose \
         -f v4l2 -s 1x1 \
         -r $( v4l2-ctl --device /dev/video0 -p $(awk_expr "1/${delay}") | awk "{print \$5}" ) \
         -i "${vdev}"  \
         -vf \
-scale="1:1:flags=area+print_info",format=rgb48le,\
-curves=all="0/$bl_floor $bl_mul/$bl_ceil",\
-scale=flags=neighbor,format=gray16le\
-'$( [ $fade_frames -gt 0 ] && echo \
-',geq=lum="
-        st ( 1\, lum (0\,0) )                        \;
+scale="1:1:flags=area+accurate_rnd+print_info",format=gray16le,\
+geq=lum="
+        st ( 1\, clip ($minbright + lum (0\,0) * $bl_mul \, $minbright\, $maxbright ))
+'"$( [ $fade_frames -gt 0 ] && echo ' \;
         if ( eq (N \, 0)\, st(0\, $(cat "${acpi_dir}/brightness")) ) \;
+
         if ( eq (ld(1) \, ld(0)) \,
                 ld(0) \,
                 clip (
@@ -365,8 +361,8 @@ scale=flags=neighbor,format=gray16le\
                                 st(0\, max( ld(0) / ${bl_step}\, ld(1) ))
                         )\, 0\, ${maxbright}
                 )
-        )"'
-)' \
+        )
+' )"'" \
         ${frames} -vcodec rawvideo -f rawvideo -pix_fmt gray16le -r 1/${delay} -'
 msg_debug "bl_mul   $bl_mul"
 msg_debug "bl_ceil  $bl_ceil"
