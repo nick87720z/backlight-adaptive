@@ -125,7 +125,7 @@ while [ $# -gt 0 ]; do
                 shift ;;
         '--max-color' ) max_color="$2"
                 shift ;;
-        '-s' | '--smooth' ) fade_frames=$(( $2 > 128 ? 128 : $2 < 1 ? 1 : $2 ))
+        '-s' | '--smooth' ) fade_frames=$(( $2 > 128 ? 128 : $2 < 0 ? 0 : $2 ))
                 shift ;;
         '-a' | '--acpi-dev' ) acpi_dev="$2"
                 shift ;;
