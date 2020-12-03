@@ -352,7 +352,7 @@ bl_mul=$( awk_expr "$imax * ($bl_max - $bl_min) / ($max_color * $omax)" )
 bl_step=$( [ $fade_frames -gt 0 ] \
         && awk_expr "( $bl_max / $bl_min )^( 1 / $fade_frames )" \
         || echo 0 )
-ffmpeg_cmd='stdbuf -o0 ffmpeg -v verbose \
+ffmpeg_cmd='stdbuf -o0 ffmpeg -v $([ $log_level_n -ge $debug ] && echo verbose || echo quiet) \
         -f v4l2 -s 1x1 \
         -r $( v4l2-ctl --device /dev/video0 -p $(awk_expr "1/${delay}") | awk "{print \$5}" ) \
         -i "${vdev}"  \
@@ -385,7 +385,7 @@ msg_debug "==========================="
         else while :; do
                 sleep $delay | eval "${ffmpeg_cmd}"
         done; fi
-  } </dev/null 2>/dev/null \
+  } </dev/null  \
   | $b od -An -w2 -tu2 --endian=little \
   | $b grep -v -e '^*$' \
   | $b awk \
