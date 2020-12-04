@@ -259,8 +259,8 @@ for backend in $backends; do
                 fi
                 
                 # Translate brightness limits to raw backlight range
-                maxbright=$(( maxbright * $(cat ${acpi_dir}/max_brightness) / 100 ))
-                minbright=$(( minbright * $(cat ${acpi_dir}/max_brightness) / 100 ))
+                bl_max=$(( maxbright * $(cat ${acpi_dir}/max_brightness) / 100 ))
+                bl_min=$(( minbright * $(cat ${acpi_dir}/max_brightness) / 100 ))
 
                 break
         ;;
@@ -339,17 +339,17 @@ frames=$($grab || echo -frames 1)
 imax=255.0
 omax=65535.0
 bl_step=$( [ $fade_frames -gt 0 ] \
-        && awk_expr "( $maxbright / $minbright )^( 1 / $fade_frames )" \
+        && awk_expr "( $bl_max / $bl_min )^( 1 / $fade_frames )" \
         || echo 0 )
-bl_mul=$( awk_expr "$imax * ($maxbright - $minbright) / ($max_color * $omax)" )
 ffmpeg_cmd='stdbuf -o0 ffmpeg -v verbose \
+bl_mul=$( awk_expr "$imax * ($bl_max - $bl_min) / ($max_color * $omax)" )
         -f v4l2 -s 1x1 \
         -r $( v4l2-ctl --device /dev/video0 -p $(awk_expr "1/${delay}") | awk "{print \$5}" ) \
         -i "${vdev}"  \
         -vf \
 scale="1:1:flags=area+accurate_rnd+print_info",format=gray16le,\
 geq=lum="
-        st ( 1\, clip ($minbright + lum (0\,0) * $bl_mul \, $minbright\, $maxbright ))
+        st ( 1\, clip ($bl_min + lum (0\,0) * $bl_mul \, $bl_min\, $bl_max ))
 '"$( [ $fade_frames -gt 0 ] && echo ' \;
         if ( eq (N \, 0)\, st(0\, $(cat "${acpi_dir}/brightness")) ) \;
 
@@ -359,7 +359,7 @@ geq=lum="
                         if ( gt ( ld(1) \, ld(0) ) \,
                                 st(0\, min( ld(0) * ${bl_step}\, ld(1) )) \,
                                 st(0\, max( ld(0) / ${bl_step}\, ld(1) ))
-                        )\, 0\, ${maxbright}
+                        )\, 0\, ${bl_max}
                 )
         )
 ' )"'" \
@@ -385,7 +385,7 @@ msg_debug "==========================="
         -v "bl_cmd=${bl_cmd}"                                        \
         '{
                 if (! quiet) {
-                        printf ("brightness: %.02f%% value: %u\n", 100 * $1 / '$maxbright', $1)
+                        printf ("brightness: %.02f%% value: %u\n", 100 * $1 / '$bl_max', $1)
                 }
                 if (bl_cmd) {
                         printf ("%s %u %s\n", bl_cmd, $1, "'"$backend_args"'") | "sh"
