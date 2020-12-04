@@ -343,7 +343,7 @@ bl_mul=$( awk_expr "$max_color / $imax" )
 bl_ceil=$( awk_expr "$maxbright / 65536" )
 bl_floor=$( awk_expr "$minbright / 65536" )
 bl_step=$( [ $fade_frames -gt 0 ] \
-        && awk_expr '('${maxbright}'/'${minbright}')^(1.0/'${fade_frames}')' \
+        && awk_expr "( $maxbright / $minbright )^( 1 / $fade_frames )" \
         || echo 0 )
 ffmpeg_cmd='stdbuf -o0 ffmpeg -v verbose \
         -f v4l2 -s 1x1 \
