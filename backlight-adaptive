@@ -189,17 +189,17 @@ i=0; for l in error warning info debug; do
         eval $l=$i
         i=$(( i+1 ))
 done; unset i l
-eval log_level=\$$log_level
+eval log_level_n=\$$log_level
 
 msg_color() {
         local c=$1
         shift
         echo "$(col $c)$*$sgr0"
 }
-msg_debug()   { [ $log_level -ge $debug   ] && echo "$*${sgr0}"; }
-msg_info()    { [ $log_level -ge $info    ] && msg_color blue   "$*"; }
-msg_warning() { [ $log_level -ge $warning ] && msg_color yellow "$*"; }
-msg_error()   { [ $log_level -ge $error   ] && msg_color red    "$*"; }
+msg_debug()   { [ $log_level_n -ge $debug   ] && echo "$*${sgr0}"; }
+msg_info()    { [ $log_level_n -ge $info    ] && msg_color blue   "$*"; }
+msg_warning() { [ $log_level_n -ge $warning ] && msg_color yellow "$*"; }
+msg_error()   { [ $log_level_n -ge $error   ] && msg_color red    "$*"; }
 
 fatal() {
         msg_error "$@"
@@ -389,7 +389,7 @@ msg_debug "==========================="
   | $b od -An -w2 -tu2 --endian=little \
   | $b grep -v -e '^*$' \
   | $b awk \
-        -v "quiet=$([ $log_level -ge $debug ] && echo 0 || echo 1)" \
+        -v "quiet=$([ $log_level_n -ge $debug ] && echo 0 || echo 1)" \
         -v "bl_cmd=${bl_cmd}"                                        \
         '{
                 if (! quiet) {
