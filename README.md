@@ -6,6 +6,7 @@ Adaptive backlight daemon, using camera as light sensor.
 - effective: up to 30fps for camera input without notable performance losses
 - no need for X, backlight is controlled via ACPI (though xbacklight is supported too)
 - auto-restart on configuration file change
+- set maximum light to current by SIGUSR2 signal
 
 ## Dependencies
 *Note: It will tell when necessary tools are missing.*
@@ -49,6 +50,11 @@ Possible places for configuration file:
 - $XDG_CONFIG_DIR
 - ~/.config
 - /etc
+
+Supported signals:
+
+- SIGUSR1 - reload configuration
+- SIGUSR2 - update maximum color to current light level
 
 ## Under hood
 

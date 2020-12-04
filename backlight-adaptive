@@ -48,6 +48,10 @@ print_options() {
         done
 }
 
+save_config() {
+        print_options fade_frames delay grab log_level log_color max_color maxbright minbright acpi_dev backends backend_args | sort > "${config_file}"
+}
+
 # Search for either config file or writable config dir
 for config_dir in "${XDG_CONFIG_PATH}" ~/.config /etc ; do
         [ -f "${config_dir}/${progname}" -o \( -d "${config_dir}" -a -w "${config_dir}" \) ] && break
@@ -79,7 +83,7 @@ then
                         esac
                 done; } < ~/.config/${progname}
         elif touch "${config_file}"; then
-                print_options fade_frames delay grab log_level log_color max_color maxbright minbright acpi_dev backends backend_args | sort > "${config_file}"
+                save_config
         else
                 unset config_file
         fi
@@ -320,8 +324,14 @@ restart() {
         kill -- -$procpid
 }
 
+input_max() {
+        state=input_max
+        kill -- -$procpid
+}
+
 trap "quit"    INT TERM QUIT HUP
 trap "restart" USR1
+trap "input_max" USR2
 
 # Processing pipeline
 
@@ -413,15 +423,26 @@ msg_debug "Waiting for events"
 wait $procpid
 kill -- -$monpid
 
-case $state in
-'int'    )
-        msg_info Interrupted; 
-        exit ;;
-'restart')
-        msg_info 'Restart...'; rm $pidfile; 
-        eval exec "$0 $startup_args" ;;
-'run'    )
-        msg_warning 'Pipeline terminated on its own'; 
-        exit ;;
-esac
+while :; do
+        case $state in
+        'int'    )
+                msg_info Interrupted; 
+                exit ;;
+        'restart')
+                msg_info 'Restart...'; rm $pidfile; 
+                eval exec "$0 $startup_args" ;;
+        'input_max' )
+                frames=1
+                max_color=$( ffmpeg -v quiet -f v4l2 -s 1x1 -i "${vdev}" -frames 1 -vcodec rawvideo -f rawvideo -vf scale=1:1:flags=area+accurate_rnd,format=gray - | od -An -w1 -tu1 | tr -d ' ' )
+                msg_info "New light maximum: $max_color / 255"
+                save_config
+
+                state=restart
+                continue ;;
+        'run'    )
+                msg_warning 'Pipeline terminated on its own'; 
+                exit ;;
+        esac
+        break
+done
 
