@@ -230,15 +230,19 @@ fi
 backends="$( echo "$backends" | tr ',' ' ' )"
 for backend in $backends; do
         msg_info "Checking backend ${bold}$(col green)$backend"
+        bl_max=${maxbright}
+        bl_min=${minbright}
         case "$backend" in
         light )
                 which ${backend} >/dev/null 2>&1 || continue
                 bl_cmd='light -S '
+                bl_get_cmd='light -G'
                 break
         ;;
         xbacklight )
                 which ${backend} >/dev/null 2>&1 || continue
                 bl_cmd='xbacklight -set '
+                bl_get_cmd='xbacklight -get'
                 break
         ;;
         internal )
@@ -265,6 +269,8 @@ for backend in $backends; do
                 # Translate brightness limits to raw backlight range
                 bl_max=$(( maxbright * $(cat ${acpi_dir}/max_brightness) / 100 ))
                 bl_min=$(( minbright * $(cat ${acpi_dir}/max_brightness) / 100 ))
+
+                bl_get_cmd="cat '${acpi_dir}/brightness'"
 
                 break
         ;;
@@ -361,7 +367,7 @@ scale="1:1:flags=area+accurate_rnd+print_info",format=gray16le,\
 geq=lum="
         st ( 1\, clip ($bl_min + lum (0\,0) * $bl_mul \, $bl_min\, $bl_max ))
 '"$( [ $fade_frames -gt 0 ] && echo ' \;
-        if ( eq (N \, 0)\, st(0\, $(cat "${acpi_dir}/brightness")) ) \;
+        if ( eq (N \, 0)\, st(0\, $(eval "${bl_get_cmd}")) ) \;
 
         if ( eq (ld(1) \, ld(0)) \,
                 ld(0) \,
