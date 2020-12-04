@@ -227,8 +227,7 @@ msg_info "Searching usable backend"
 if [ ! "${backends}" ]; then
         fatal "Backends are not set"
 fi
-backends="$( echo "$backends" | tr ',' ' ' )"
-for backend in $backends; do
+for backend in $( printf '%s' "$backends" | tr ',' ' ' ) ; do
         msg_info "Checking backend ${bold}$(col green)$backend"
         bl_max=${maxbright}
         bl_min=${minbright}
