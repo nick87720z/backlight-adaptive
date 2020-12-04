@@ -363,7 +363,7 @@ geq=lum="
                 )
         )
 ' )"'" \
-        ${frames} -vcodec rawvideo -f rawvideo -pix_fmt gray16le -r 1/${delay} -'
+        ${frames} -vcodec rawvideo -f rawvideo -r 1/${delay} -'
 msg_debug "bl_mul   $bl_mul"
 msg_debug "bl_ceil  $bl_ceil"
 msg_debug "bl_floor $bl_floor"
