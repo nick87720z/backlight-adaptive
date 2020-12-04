@@ -43,7 +43,7 @@ for vdev in /dev/video* ; do break; done
 
 print_options() {
         while [ $# -gt 0 ]; do
-                eval echo "$1=\$$1"
+                eval printf '%s\\n' "$1=\$$1"
                 shift
         done
 }
@@ -78,7 +78,7 @@ then
                         max_color   ) max_color="$v";    continue;;
                         minbright   ) minbright="$v";    continue;;
                         * )
-                                echo "Unknown config option '${name}'"
+                                printf '%s\n' "Unknown config option '${name}'"
                                 continue;;
                         esac
                 done; } < ~/.config/${progname}
@@ -90,22 +90,22 @@ then
 fi
 
 show_help() {
-        echo "Usage: $(basename $0) [options] -- [backend options]"
-        echo "Options:"
-        echo "-d, --delay     FLOAT       Snapshots delay (seconds)"
-        echo "-g, --no-grab               Don't keep camera busy all time"
-        echo "-a, --acpi-dev  NAME        ACPI device to be controlled"
-        echo "-v, --video-dev DEVICE      Video device used as sensor (e.g. /dev/video0)"
-        echo "-b, --backends  STR,STR...  Comma-separated list of backlight control backends"
-        echo "-B, --list-backends         List available backends"
-        echo "-l, --log       STRING      Log verbosity. One of: error, warning, info, debug"
-        echo "-c, --color     BOOLEAN     Colorize output"
-        echo "    --bl-max    FLOAT       Maximum backlight level (%)"
-        echo "    --bl-min    FLOAT       Minimum backlight level (%)"
-        echo "    --max-color INTEGER     Color value for full backlight level"
-        echo "-s, --smooth    INTEGER     Light change smoothness (frames, 1..128)"
-        echo "-t, --toggle                Stop runing instance or run as new"
-        echo "-h, --help                  Show this help"
+        printf '%s\n' "Usage: $(basename $0) [options] -- [backend options]"
+        printf '%s\n' "Options:"
+        printf '%s\n' "-d, --delay     FLOAT       Snapshots delay (seconds)"
+        printf '%s\n' "-g, --no-grab               Don't keep camera busy all time"
+        printf '%s\n' "-a, --acpi-dev  NAME        ACPI device to be controlled"
+        printf '%s\n' "-v, --video-dev DEVICE      Video device used as sensor (e.g. /dev/video0)"
+        printf '%s\n' "-b, --backends  STR,STR...  Comma-separated list of backlight control backends"
+        printf '%s\n' "-B, --list-backends         List available backends"
+        printf '%s\n' "-l, --log       STRING      Log verbosity. One of: error, warning, info, debug"
+        printf '%s\n' "-c, --color     BOOLEAN     Colorize output"
+        printf '%s\n' "    --bl-max    FLOAT       Maximum backlight level (%)"
+        printf '%s\n' "    --bl-min    FLOAT       Minimum backlight level (%)"
+        printf '%s\n' "    --max-color INTEGER     Color value for full backlight level"
+        printf '%s\n' "-s, --smooth    INTEGER     Light change smoothness (frames, 1..128)"
+        printf '%s\n' "-t, --toggle                Stop runing instance or run as new"
+        printf '%s\n' "-h, --help                  Show this help"
 }
 
 # Arguments loading
@@ -137,7 +137,7 @@ while [ $# -gt 0 ]; do
                 shift ;;
         '-b' | '--backends' ) backends="$2"
                 shift ;;
-        '-B' | '--list-backends' ) echo "${backends_all}"
+        '-B' | '--list-backends' ) printf '%s\n' "${backends_all}"
                 exit ;;
         '-t' | '--toggle' ) toggle=true;;
         '-h' | '--help' ) show_help
@@ -194,9 +194,9 @@ eval log_level_n=\$$log_level
 msg_color() {
         local c=$1
         shift
-        echo "$(col $c)$*$sgr0"
+        printf '%s\n' "$(col $c)$*$sgr0"
 }
-msg_debug()   { [ $log_level_n -ge $debug   ] && echo "$*${sgr0}"; }
+msg_debug()   { [ $log_level_n -ge $debug   ] && printf '%s\n' "$*${sgr0}"; }
 msg_info()    { [ $log_level_n -ge $info    ] && msg_color blue   "$*"; }
 msg_warning() { [ $log_level_n -ge $warning ] && msg_color yellow "$*"; }
 msg_error()   { [ $log_level_n -ge $error   ] && msg_color red    "$*"; }
@@ -315,7 +315,7 @@ elif [ -f "$pidfile" ]; then
         fi
 fi
 
-echo "$$" > "$pidfile"
+printf '%s\n' "$$" > "$pidfile"
 
 # Event loop setup
 
@@ -341,7 +341,7 @@ trap "input_max" USR2
 # Processing pipeline
 
 awk_expr() {
-        echo | awk '{ printf ("%.17g", '"$1"') }'
+        printf '\n' | awk '{ printf ("%.17g", '"$1"') }'
 }
 
 set -m
@@ -350,14 +350,14 @@ msg_info "Smoothing duration: $fade_frames frames"
 
 msg_debug '=== Processing start ==='
 b='stdbuf -oL'
-frames=$($grab || echo -frames 1)
+frames=$($grab || printf '-frames 1')
 imax=255.0
 omax=65535.0
 bl_mul=$( awk_expr "$imax * ($bl_max - $bl_min) / ($max_color * $omax)" )
 bl_step=$( [ $fade_frames -gt 0 ] \
         && awk_expr "( $bl_max / $bl_min )^( 1 / $fade_frames )" \
-        || echo 0 )
-ffmpeg_cmd='stdbuf -o0 ffmpeg -v $([ $log_level_n -ge $debug ] && echo verbose || echo quiet) \
+        || printf 0 )
+ffmpeg_cmd='stdbuf -o0 ffmpeg -v $([ $log_level_n -ge $debug ] && printf verbose || printf quiet) \
         -f v4l2 -s 1x1 \
         -r $( v4l2-ctl --device /dev/video0 -p $(awk_expr "1/${delay}") | awk "{print \$5}" ) \
         -i "${vdev}"  \
@@ -365,7 +365,7 @@ ffmpeg_cmd='stdbuf -o0 ffmpeg -v $([ $log_level_n -ge $debug ] && echo verbose |
 scale="1:1:flags=area+accurate_rnd+print_info",format=gray16le,\
 geq=lum="
         st ( 1\, clip ($bl_min + lum (0\,0) * $bl_mul \, $bl_min\, $bl_max ))
-'"$( [ $fade_frames -gt 0 ] && echo ' \;
+'"$( [ $fade_frames -gt 0 ] && printf '%s' ' \;
         if ( eq (N \, 0)\, st(0\, $(eval "${bl_get_cmd}")) ) \;
 
         if ( eq (ld(1) \, ld(0)) \,
