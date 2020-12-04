@@ -356,7 +356,7 @@ scale=flags=neighbor,format=gray16le\
 '$( [ $fade_frames -gt 0 ] && echo \
 ',geq=lum="
         st ( 1\, lum (0\,0) )                        \;
-        if ( eq (ld(0) \, 0)\, st(0\, $maxbright ) ) \;
+        if ( eq (N \, 0)\, st(0\, $(cat "${acpi_dir}/brightness")) ) \;
         if ( eq (ld(1) \, ld(0)) \,
                 ld(0) \,
                 clip (
