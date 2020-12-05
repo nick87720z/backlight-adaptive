@@ -351,6 +351,10 @@ awk_expr() {
         printf '\n' | awk '{ printf ("%.17g", '"$1"') }'
 }
 
+awk_cmd() {
+        printf '\n' | awk "{ $* }"
+}
+
 set -m
 
 msg_info "Smoothing duration: $fade_frames frames"
@@ -364,10 +368,9 @@ bl_mul=$( awk_expr "$imax * ($bl_max - $bl_min) / ($max_color * $omax)" )
 bl_step=$( [ $fade_frames -gt 0 ] \
         && awk_expr "( $bl_max / $bl_min )^( 1 / $fade_frames )" \
         || printf 0 )
+ifps=$( awk_cmd 'sprintf ("v4l2-ctl --device '${vdev}' -p %i\n", 1 / '$delay') | getline; print $5' )
 ffmpeg_cmd='stdbuf -o0 ffmpeg -v $([ $log_level_n -ge $debug ] && printf verbose || printf quiet) \
-        -f v4l2 -s 1x1 \
-        -r $( v4l2-ctl --device /dev/video0 -p $(awk_expr "1/${delay}") | awk "{print \$5}" ) \
-        -i "${vdev}"  \
+        -f v4l2 -s 1x1 -r "${ifps}" -i "${vdev}"  \
         -vf scale=1:1:flags=area+accurate_rnd+print_info,format=gray16le \
         ${frames} -vcodec rawvideo -f rawvideo -r 1/${delay} -'
 msg_debug "bl_mul   $bl_mul"
