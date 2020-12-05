@@ -12,6 +12,7 @@ Adaptive backlight daemon, using camera as light sensor.
 *Note: It will tell when necessary tools are missing.*
 
 - posix shell (tested with [GNU Bash](http://tiswww.case.edu/php/chet/bash/bashtop.html) and [Dash](http://gondor.apana.org.au/~herbert/dash/))
+- [ncurses](https://www.gnu.org/software/ncurses/)
 - [FFMpeg](https://ffmpeg.org/)
 - [coreutils](https://www.gnu.org/software/coreutils/)
 - [awk](https://www.gnu.org/software/gawk/gawk.html)
@@ -20,6 +21,7 @@ Adaptive backlight daemon, using camera as light sensor.
 
 **Optional (alternative)**
 
+- [util-linux](https://www.kernel.org/pub/linux/utils/util-linux/)
 - [light](https://github.com/haikarainen/light)
 - [xbacklight](https://gitlab.freedesktop.org/xorg/app/xbacklight) or [acpilight](sys-power/acpilight)
 

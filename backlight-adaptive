@@ -211,15 +211,39 @@ msg_info "Config file: ${bold}$(col green)${config_file}"
 # Depepdency check
 
 msg_info "Checking dependencies"
-for dep in inotifywait ffmpeg tr od awk v4l2-ctl; do
+for dep in tput inotifywait ffmpeg tr awk v4l2-ctl; do
         if ! [ "$(which $dep 2>/dev/null)" ]; then
                 msg_error "${dep} executable required but not found"
                 abort=1
         fi
 done
+# binary stream printer
+for hextool in hexdump od; do
+        if which $hextool > /dev/null; then
+                break
+        fi
+        hextool=
+done
+case "$hextool" in
+        hexdump )
+                byteorder_test='hexdump -x'
+                hexprinter="hexdump -v -e '1/2 \"%u\\n\"'"
+        ;;
+        od )
+                byteorder_test='od -x'
+                hexprinter='od -v -An -w2 -tu2'
+        ;;
+        * )
+                abort=1
+                msg_error "Either hexdump or od are required"
+        ;;
+esac
 if [ "$abort" ]; then
         exit 1
 fi
+msg_info "Hex printer: ${hextool}"
+msg_debug "hexprinter: ${hexprinter}"
+msg_debug "byteorder_test: ${byteorder_test}"
 
 # Choose backlight control tool
 
@@ -362,6 +386,7 @@ msg_info "Smoothing duration: $fade_frames frames"
 msg_debug '=== Processing start ==='
 b='stdbuf -oL'
 frames=$($grab || printf '-frames 1')
+pix_fmt=$( printf '\x11' | $byteorder_test | awk 'FNR==1 { print substr($2,4,1) ? "gray16le" : "gray16be" }' )
 imax=255.0
 omax=65535.0
 bl_mul=$( awk_expr "$imax * ($bl_max - $bl_min) / ($max_color * $omax)" )
@@ -371,10 +396,11 @@ bl_step=$( [ $fade_frames -gt 0 ] \
 ifps=$( awk_cmd 'sprintf ("v4l2-ctl --device '${vdev}' -p %i\n", 1 / '$delay') | getline; print $5' )
 ffmpeg_cmd='stdbuf -o0 ffmpeg -v $([ $log_level_n -ge $debug ] && printf verbose || printf quiet) \
         -f v4l2 -s 1x1 -r "${ifps}" -i "${vdev}"  \
-        -vf scale=1:1:flags=area+accurate_rnd+print_info,format=gray16le \
+        -vf scale=1:1:flags=area+accurate_rnd+print_info,format=${pix_fmt} \
         ${frames} -vcodec rawvideo -f rawvideo -r 1/${delay} -'
 msg_debug "bl_mul   $bl_mul"
 msg_debug "bl_step  $bl_step"
+msg_debug "pix_fmt: $pix_fmt"
 msg_debug "=== ffmpeg_cmd ============"
 msg_debug "${ffmpeg_cmd}"
 msg_debug "==========================="
@@ -385,7 +411,7 @@ msg_debug "==========================="
                 sleep $delay | eval "${ffmpeg_cmd}"
         done; fi
   } </dev/null  \
-  | $b hexdump -v -e '1/2 "%u\n"' \
+  | eval "exec $b $hexprinter" \
   | $b awk \
         -v "bl_cur=$( eval "$bl_get_cmd" )" \
         -v "bl_fmt=${bl_fmt}"               \
