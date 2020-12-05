@@ -234,14 +234,16 @@ for backend in $( printf '%s' "$backends" | tr ',' ' ' ) ; do
         case "$backend" in
         light )
                 which ${backend} >/dev/null 2>&1 || continue
-                bl_cmd='light -S '
                 bl_get_cmd='light -G'
+                bl_sh="sh"
+                bl_fmt="light -S %f ${backend_args}\n"
                 break
         ;;
         xbacklight )
                 which ${backend} >/dev/null 2>&1 || continue
-                bl_cmd='xbacklight -set '
                 bl_get_cmd='xbacklight -get'
+                bl_sh="sh"
+                bl_fmt="xbacklight -set %f ${backend_args}\n"
                 break
         ;;
         internal )
@@ -270,6 +272,8 @@ for backend in $( printf '%s' "$backends" | tr ',' ' ' ) ; do
                 bl_min=$(( minbright * $(cat ${acpi_dir}/max_brightness) / 100 ))
 
                 bl_get_cmd="cat '${acpi_dir}/brightness'"
+                bl_sh="cat > '${acpi_dir}/brightness'"
+                bl_fmt='%u\n'
 
                 break
         ;;
@@ -280,6 +284,9 @@ if [ ! "${backend}" ]; then
         fatal "No working backends found"
 fi
 msg_info "Using backend ${bold}$(col green)${backend}"
+msg_debug "bl_get_cmd $bl_get_cmd"
+msg_debug "bl_sh      $bl_sh"
+msg_debug "bl_fmt     $bl_fmt"
 
 # Setup temporary dir
 
@@ -361,23 +368,7 @@ ffmpeg_cmd='stdbuf -o0 ffmpeg -v $([ $log_level_n -ge $debug ] && printf verbose
         -f v4l2 -s 1x1 \
         -r $( v4l2-ctl --device /dev/video0 -p $(awk_expr "1/${delay}") | awk "{print \$5}" ) \
         -i "${vdev}"  \
-        -vf \
-scale="1:1:flags=area+accurate_rnd+print_info",format=gray16le,\
-geq=lum="
-        st ( 1\, clip ($bl_min + lum (0\,0) * $bl_mul \, $bl_min\, $bl_max ))
-'"$( [ $fade_frames -gt 0 ] && printf '%s' ' \;
-        if ( eq (N \, 0)\, st(0\, $(eval "${bl_get_cmd}")) ) \;
-
-        if ( eq (ld(1) \, ld(0)) \,
-                ld(0) \,
-                clip (
-                        if ( gt ( ld(1) \, ld(0) ) \,
-                                st(0\, min( ld(0) * ${bl_step}\, ld(1) )) \,
-                                st(0\, max( ld(0) / ${bl_step}\, ld(1) ))
-                        )\, 0\, ${bl_max}
-                )
-        )
-' )"'" \
+        -vf scale=1:1:flags=area+accurate_rnd+print_info,format=gray16le \
         ${frames} -vcodec rawvideo -f rawvideo -r 1/${delay} -'
 msg_debug "bl_mul   $bl_mul"
 msg_debug "bl_step  $bl_step"
@@ -391,21 +382,24 @@ msg_debug "==========================="
                 sleep $delay | eval "${ffmpeg_cmd}"
         done; fi
   } </dev/null  \
-  | $b od -An -w2 -tu2 --endian=little \
-  | $b grep -v -e '^*$' \
+  | $b hexdump -v -e '1/2 "%u\n"' \
   | $b awk \
-        -v "quiet=$([ $log_level_n -ge $debug ] && echo 0 || echo 1)" \
-        -v "bl_cmd=${bl_cmd}"                                        \
-        '{
-                if (! quiet) {
-                        printf ("brightness: %.02f%% value: %u\n", 100 * $1 / '$bl_max', $1)
-                }
-                if (bl_cmd) {
-                        printf ("%s %u %s\n", bl_cmd, $1, "'"$backend_args"'") | "sh"
-                } else {
-                        printf ("%u\n", $1) | "cat > '"${acpi_dir}/brightness"'"
-                }
-        }'
+        -v "bl_cur=$( eval "$bl_get_cmd" )" \
+        -v "bl_fmt=${bl_fmt}"               \
+        "{
+                bl = $bl_min + \$1 * $bl_mul
+                bl = bl > $bl_max ? $bl_max : bl < $bl_min ? $bl_min : bl
+                if (bl == bl_cur) next
+
+                if (bl > bl_cur ? (bl_cur *= $bl_step) > bl : (bl_cur /= $bl_step) < bl)
+                        bl_cur = bl
+
+                if ( $(( log_level_n >= debug )) ) { "'
+                        printf ("brightness: %.02f%% input light: %u\n", 100 * bl_cur / '$bl_max', $1 / 256) > "/dev/stderr"
+                }'"
+                printf (\"$bl_fmt\", bl_cur)
+        }" \
+  | eval exec "$bl_sh" 
 ) & procpid=$!
 
 state=run
