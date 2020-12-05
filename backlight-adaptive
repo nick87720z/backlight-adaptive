@@ -241,7 +241,7 @@ esac
 if [ "$abort" ]; then
         exit 1
 fi
-msg_info "Hex printer: ${hextool}"
+msg_info "Found hex printer: ${bold}$(col green)${hextool}"
 msg_debug "hexprinter: ${hexprinter}"
 msg_debug "byteorder_test: ${byteorder_test}"
 
@@ -308,9 +308,9 @@ if [ ! "${backend}" ]; then
         fatal "No working backends found"
 fi
 msg_info "Using backend ${bold}$(col green)${backend}"
-msg_debug "bl_get_cmd $bl_get_cmd"
-msg_debug "bl_sh      $bl_sh"
-msg_debug "bl_fmt     $bl_fmt"
+msg_debug "bl_get_cmd: $bl_get_cmd"
+msg_debug "bl_sh     : $bl_sh"
+msg_debug "bl_fmt    : $bl_fmt"
 
 # Setup temporary dir
 
@@ -398,9 +398,9 @@ ffmpeg_cmd='stdbuf -o0 ffmpeg -v $([ $log_level_n -ge $debug ] && printf verbose
         -f v4l2 -s 1x1 -r "${ifps}" -i "${vdev}"  \
         -vf scale=1:1:flags=area+accurate_rnd+print_info,format=${pix_fmt} \
         ${frames} -vcodec rawvideo -f rawvideo -r 1/${delay} -'
-msg_debug "bl_mul   $bl_mul"
-msg_debug "bl_step  $bl_step"
 msg_debug "pix_fmt: $pix_fmt"
+msg_debug "bl_mul:  $bl_mul"
+msg_debug "bl_step: $bl_step"
 msg_debug "=== ffmpeg_cmd ============"
 msg_debug "${ffmpeg_cmd}"
 msg_debug "==========================="
