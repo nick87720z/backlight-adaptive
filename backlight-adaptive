@@ -419,16 +419,19 @@ msg_debug "==========================="
         "{
                 bl = $bl_min + \$1 * $bl_fm / $bl_fd
                 bl = bl > $bl_max ? $bl_max : bl < $bl_min ? $bl_min : bl
-                if (bl == bl_cur) next
+        }
+        bl == bl_cur { next }
 
-                if (bl > bl_cur ? (bl_cur *= $bl_step) > bl : (bl_cur /= $bl_step) < bl)
-                        bl_cur = bl
+        bl > bl_cur ? (bl_cur *= $bl_step) > bl : (bl_cur /= $bl_step) < bl \
+                { bl_cur = bl }
 
-                if ( $(( log_level_n >= debug )) ) { "'
-                        printf ("brightness: %.02f%% input light: %u\n", 100 * bl_cur / '$bl_max', $1 / 256) > "/dev/stderr"
-                }'"
-                printf (\"$bl_fmt\", bl_cur)
-        }" \
+        $(( log_level_n >= debug )) {
+                "'printf ("brightness: %.02f%% input light: %u\n", 100 * bl_cur / '$bl_max', $1 / 256) > "/dev/stderr"'"
+        }
+        bl_cur > $bl_max "'{
+                printf ("brightness value %u out of range\n", bl_cur) > "/dev/stderr"
+        }'"
+        { printf (\"$bl_fmt\", bl_cur) }" \
   | eval exec "$bl_sh" 
 ) & procpid=$!
 
