@@ -457,7 +457,7 @@ msg_debug "==========================="
                 "'printf ("brightness: %.02f%% input light: %u\n", 100 * p / '$bl_max', $1 / 256) > stderr'"
         }
         ( p > $bl_max || p < 0 ) {
-                "'printf ("backlight value %f is out of range 0..$bl_max", p)'"
+                "'printf ("backlight value %f is out of range 0..$bl_max", p)'" > stderr
                 next
         }
         { printf (bl_fmt, p) }" \
