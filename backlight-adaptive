@@ -456,7 +456,7 @@ msg_debug "==========================="
         $(( log_level_n >= debug )) {
                 "'printf ("brightness: %.02f%% input light: %u\n", 100 * p / '$bl_max', $1 / 256) > stderr'"
         }
-        if ( p > $bl_max || p < 0 ) {
+        ( p > $bl_max || p < 0 ) {
                 "'printf ("backlight value %f is out of range 0..$bl_max", p)'"
                 next
         }
