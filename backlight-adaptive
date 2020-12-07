@@ -406,8 +406,15 @@ msg_debug "==========================="
   | eval "exec $b $hexprinter" \
   | $b awk \
         -v bl_fmt="${bl_fmt}" \
-        "BEGIN {
+        "function to_log(x) {
+                return $bl_min + log(x / $bl_min) * d_log_r
+        }
+        function from_log(x) {
+                return $bl_min * r^((x - $bl_min) / d)
+        }
+        BEGIN {
                 stderr = \"/dev/stderr\"
+
                 # speedup calculations
                 imax = 255 ; omax = 65535
                 bl_cur = $( eval "$bl_get_cmd" )
@@ -415,15 +422,16 @@ msg_debug "==========================="
                 bl_fd = ($max_color * omax)
                 r = $bl_max / $bl_min
                 d = $bl_max - $bl_min
-                log_rd = d / log(r)
+                d_log_r = d / log(r)
 
                 # init LPF
                 stage_frames = int( $fade_frames / 2 )
                 bl_step = stage_frames > 0 ? ($bl_max / $bl_min )^( 1 / stage_frames) : 0
+                bl_log = to_log(bl_cur)
                 for (fi = 0; fi < stage_frames; fi += 1)
-                        fbuf[fi] = bl_cur
+                        fbuf[fi] = bl_log
                 fi = 0
-                fsum = bl_cur * stage_frames
+                fsum = bl_log * stage_frames
         }{
                 # map to backlight range
                 bl = $bl_min + \$1 * bl_fm / bl_fd
@@ -434,16 +442,14 @@ msg_debug "==========================="
 
         # sliding box filter to smooth linear transition
         {
-                # to logarithmic scale
-                p = $bl_min + log(bl_cur / $bl_min) * log_rd
+                p = to_log(bl_cur)
         
                 fsum += p - fbuf[fi]
                 fbuf[fi] = p
                 fi = (fi + 1) % stage_frames
                 p = fsum / stage_frames
 
-                # from logarithmic scale
-                p = int($bl_min * r^((p - $bl_min) / d))
+                p = from_log(p)
         }
         bl == p { next }
 
