@@ -387,21 +387,12 @@ msg_debug '=== Processing start ==='
 b='stdbuf -oL'
 frames=$($grab || printf '-frames 1')
 pix_fmt=$( printf '\x11' | $byteorder_test | awk 'FNR==1 { print substr($2,4,1) ? "gray16le" : "gray16be" }' )
-imax=255
-omax=65535
-bl_fm=$( awk_expr "$imax * ($bl_max - $bl_min)" )
-bl_fd=$( awk_expr "($max_color * $omax)" )
-bl_step=$( [ $fade_frames -gt 0 ] \
-        && awk_expr "( $bl_max / $bl_min )^( 1 / $fade_frames )" \
-        || printf 0 )
 ifps=$( awk_cmd 'sprintf ("v4l2-ctl --device '${vdev}' -p %i\n", 1 / '$delay') | getline; print $5' )
 ffmpeg_cmd='stdbuf -o0 ffmpeg -v $([ $log_level_n -ge $debug ] && printf verbose || printf quiet) \
         -f v4l2 -s 1x1 -r "${ifps}" -i "${vdev}"  \
         -vf scale=1:1:flags=area+accurate_rnd+print_info,format=${pix_fmt} \
         ${frames} -vcodec rawvideo -f rawvideo -r 1/${delay} -'
 msg_debug "pix_fmt  : $pix_fmt"
-msg_debug "bl_factor: $bl_fm / $bl_fd"
-msg_debug "bl_step  : $bl_step"
 msg_debug "=== ffmpeg_cmd ============"
 msg_debug "${ffmpeg_cmd}"
 msg_debug "==========================="
@@ -414,24 +405,52 @@ msg_debug "==========================="
   } </dev/null  \
   | eval "exec $b $hexprinter" \
   | $b awk \
-        -v "bl_cur=$( eval "$bl_get_cmd" )" \
-        -v "bl_fmt=${bl_fmt}"               \
-        "{
-                bl = $bl_min + \$1 * $bl_fm / $bl_fd
+        -v bl_fmt="${bl_fmt}" \
+        "BEGIN {
+                stderr = \"/dev/stderr\"
+                # speedup calculations
+                imax = 255 ; omax = 65535
+                bl_cur = $( eval "$bl_get_cmd" )
+                bl_fm = imax * ($bl_max - $bl_min)
+                bl_fd = ($max_color * omax)
+                r = $bl_max / $bl_min
+                d = $bl_max - $bl_min
+                log_rd = d / log(r)
+
+                # init LPF
+                stage_frames = int( $fade_frames / 2 )
+                bl_step = stage_frames > 0 ? ($bl_max / $bl_min )^( 1 / stage_frames) : 0
+                for (fi = 0; fi < stage_frames; fi += 1)
+                        fbuf[fi] = bl_cur
+                fi = 0
+                fsum = bl_cur * stage_frames
+        }{
+                # map to backlight range
+                bl = $bl_min + \$1 * bl_fm / bl_fd
                 bl = bl > $bl_max ? $bl_max : bl < $bl_min ? $bl_min : bl
         }
-        bl == bl_cur { next }
-
-        bl > bl_cur ? (bl_cur *= $bl_step) > bl : (bl_cur /= $bl_step) < bl \
+        bl > bl_cur ? (bl_cur *= bl_step) > bl : (bl_cur /= bl_step) < bl \
                 { bl_cur = bl }
 
-        $(( log_level_n >= debug )) {
-                "'printf ("brightness: %.02f%% input light: %u\n", 100 * bl_cur / '$bl_max', $1 / 256) > "/dev/stderr"'"
+        # sliding box filter to smooth linear transition
+        {
+                # to logarithmic scale
+                p = $bl_min + log(bl_cur / $bl_min) * log_rd
+        
+                fsum += p - fbuf[fi]
+                fbuf[fi] = p
+                fi = (fi + 1) % stage_frames
+                p = fsum / stage_frames
+
+                # from logarithmic scale
+                p = int($bl_min * r^((p - $bl_min) / d))
         }
-        bl_cur > $bl_max "'{
-                printf ("brightness value %u out of range\n", bl_cur) > "/dev/stderr"
-        }'"
-        { printf (\"$bl_fmt\", bl_cur) }" \
+        bl == p { next }
+
+        $(( log_level_n >= debug )) {
+                "'printf ("brightness: %.02f%% input light: %u\n", 100 * p / '$bl_max', $1 / 256) > stderr'"
+        }
+        { printf (\"%u\n\", p) }" \
   | eval exec "$bl_sh" 
 ) & procpid=$!
 
