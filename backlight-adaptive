@@ -435,27 +435,33 @@ msg_debug "==========================="
                 for (fi = 0; fi < stage_frames; fi += 1)
                         fbuf[fi] = bl_log
                 fi = 0
-                fsum = bl_log * stage_frames
-        }{
+                fsum = int (bl_log * stage_frames)
+        }
+
+        # start
+        {
                 # map to backlight range
                 bl = $bl_min + \$1 * bl_fm / bl_fd
                 bl = bl > $bl_max ? $bl_max : bl < $bl_min ? $bl_min : bl
-        }
-        bl > bl_cur ? (bl_cur *= bl_step) > bl : (bl_cur /= bl_step) < bl \
-                { bl_cur = bl }
 
-        # sliding box filter to smooth linear transition
-        {
-                p = to_log(bl_cur)
-        
-                fsum += p - fbuf[fi]
-                fbuf[fi] = p
-                fi = (fi + 1) % stage_frames
-                p = fsum / stage_frames
+                if (bl_step > 0) {
+                        if (bl > bl_cur ? (bl_cur *= bl_step) > bl : (bl_cur /= bl_step) < bl)
+                                bl_cur = bl
 
-                p = from_log(p)
+                        # sliding box filter to smooth linear transition
+
+                        p = to_log(bl_cur)
+                        fsum = int(fsum + p - fbuf[fi])
+                        fbuf[fi] = p
+                        fi = (fi + 1) % stage_frames
+                        p = from_log(fsum / stage_frames)
+
+                        if (bl == p) next
+                } else {
+                        if (bl == p) next
+                        p = bl
+                }
         }
-        bl == p { next }
 
         $(( log_level_n >= debug )) {
                 "'printf ("brightness: %.02f%% input light: %u\n", 100 * p / '$bl_max', $1 / 256) > stderr'"
