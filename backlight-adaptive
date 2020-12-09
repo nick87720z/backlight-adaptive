@@ -414,6 +414,10 @@ msg_debug "==========================="
         }
         BEGIN {
                 stderr = \"/dev/stderr\"
+                bl_sh = \"exec ${bl_sh} 2>/dev/null\"
+                PROCINFO[bl_sh, \"NONFATAL\"]=1
+                errno_prev = 0
+                errno_num = 0
 
                 # speedup calculations
                 imax = 255 ; omax = 65535
@@ -460,8 +464,27 @@ msg_debug "==========================="
                 "'printf ("backlight value %f is out of range 0..$bl_max", p)'" > stderr
                 next
         }
-        { printf (bl_fmt, p) }" \
-  | eval exec "$bl_sh" 
+
+        # output
+        { 
+                ERRNO=0
+                printf (bl_fmt, p) | bl_sh
+
+                if (ERRNO) {
+                        if ( $(( log_level_n >= debug )) )
+                        {
+                                if (ERRNO == errno_prev)
+                                        errno_num += 1
+                                else
+                                        errno_num = 0
+                                errno_prev = ERRNO
+                                "'printf (bl_sh": %s%s\r", ERRNO, errno_num > 0 ? sprintf(": %u times", errno_num) : "") > stderr'"
+                        }
+                        close (bl_sh)
+                } else {
+                        fflush (bl_sh)
+                }
+        }"
 ) & procpid=$!
 
 state=run
