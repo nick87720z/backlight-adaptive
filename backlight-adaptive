@@ -21,6 +21,7 @@ backends_all=internal,light,xbacklight
 
 # Default parameters
 
+watch_conf=true
 delay=0.1
 grab=true
 log_level=info
@@ -49,7 +50,7 @@ print_options() {
 }
 
 save_config() {
-        print_options fade_frames delay grab log_level log_color max_color maxbright minbright acpi_dev backends backend_args | sort > "${config_file}"
+        print_options watch_conf fade_frames delay grab log_level log_color max_color maxbright minbright acpi_dev backends backend_args | sort > "${config_file}"
 }
 
 # Search for either config file or writable config dir
@@ -66,6 +67,7 @@ then
         then
                 { while IFS='=' read name v; do
                         case $name in
+                        watch_conf  ) watch_conf="$v";   continue;;
                         acpi_dev    ) acpi_dev="$v";     continue;;
                         backend_args) backend_args="$v"; continue;;
                         backends    ) backends="$v";     continue;;
@@ -105,6 +107,7 @@ show_help() {
         printf '%s\n' "    --max-color INTEGER     Color value for full backlight level"
         printf '%s\n' "-s, --smooth    INTEGER     Frames number to smooth (0 to disable)"
         printf '%s\n' "-t, --toggle                Stop runing instance or run as new"
+        printf '%s\n' "-w, --watchconf BOOLEAN     Auto-restart when configuration file is changed"
         printf '%s\n' "-h, --help                  Show this help"
 }
 
@@ -138,6 +141,10 @@ while [ $# -gt 0 ]; do
         '-B' | '--list-backends' ) printf '%s\n' "${backends_all}"
                 exit ;;
         '-t' | '--toggle' ) toggle=true;;
+        '-w' | '--watchconf' )
+                case "$2" in true | false )
+                        watchconf="$2"
+                esac; shift ;;
         '-h' | '--help' ) show_help
                 exit ;;
         '--' ) backend_args="$*"
@@ -500,7 +507,7 @@ msg_debug "==========================="
 state=run
 
 # Monitor config changes
-if [ -n "$config_file" ]; then {
+if $watch_conf && [ -n "$config_file" ]; then {
         inotifywait -q -e modify "$config_file"
         msg_info "Configuration changed"
         kill -s USR1 $$
@@ -513,7 +520,9 @@ set +m
 
 msg_debug "Waiting for events"
 wait $procpid
-kill -- -$monpid
+if [ -n "$monpid" ]; then
+        kill -- -$monpid
+fi
 
 while :; do
         case $state in

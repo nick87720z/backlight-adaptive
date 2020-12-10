@@ -15,13 +15,13 @@ Adaptive backlight daemon, using camera as light sensor.
 - [FFMpeg](https://ffmpeg.org/)
 - [coreutils](https://www.gnu.org/software/coreutils/)
 - [awk](https://www.gnu.org/software/gawk/gawk.html)
-- [inotify-tools](https://github.com/inotify-tools/inotify-tools)
 - [v4l-utils](https://git.linuxtv.org/v4l-utils.git)
 
 **Optional (alternative)**
 
 - [ncurses](https://www.gnu.org/software/ncurses/) - for colored output
 - [util-linux](https://www.kernel.org/pub/linux/utils/util-linux/) - use hexdump instead of od
+- [inotify-tools](https://github.com/inotify-tools/inotify-tools) - to auto-restart on configuration change
 
 **Backlight control backends**
 
