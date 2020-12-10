@@ -115,7 +115,7 @@ while [ $# -gt 0 ]; do
         '-d' | '--delay' ) delay="$2"
                 shift ;;
         '-g' | '--no-grab' ) grab=false ;;
-        '-l' | '--log' )   log_level=$2
+        '-l' | '--log' )   log_level="$2"
                 shift ;;
         '-c' | '--color'   )
                 case "$2" in
