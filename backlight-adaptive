@@ -118,11 +118,9 @@ while [ $# -gt 0 ]; do
         '-l' | '--log' )   log_level="$2"
                 shift ;;
         '-c' | '--color'   )
-                case "$2" in
-                true ) log_color=true;;
-                false) log_color=false;;
-                esac
-                shift ;;
+                case "$2" in true | false )
+                        log_color="$2";;
+                esac; shift ;;
         '--bl-max' )  maxbright="$2"
                 shift ;;
         '--bl-min' ) minbright="$2"
