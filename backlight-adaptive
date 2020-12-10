@@ -169,13 +169,13 @@ col() {
         if isnum $1; then
                 tput setaf $1
         else
-                eval tput setaf \$$1
+                eval exec tput setaf \$$1
         fi
         if [ $# -gt 2 ]; then
                 if isnum $2; then
                         tput setab $2
                 else
-                        eval tput setab \$$2
+                        eval exec tput setab \$$2
                 fi
         fi
 }
@@ -400,7 +400,7 @@ msg_debug "==========================="
         if $grab; then
                 eval exec "${ffmpeg_cmd}"
         else while :; do
-                sleep $delay | eval "${ffmpeg_cmd}"
+                sleep $delay | eval exec "${ffmpeg_cmd}"
         done; fi
   } </dev/null  \
   | eval "exec $b $hexprinter" \
@@ -421,7 +421,7 @@ msg_debug "==========================="
 
                 # speedup calculations
                 imax = 255 ; omax = 65535
-                bl_cur = $( eval "$bl_get_cmd" )
+                bl_cur = $( eval exec "$bl_get_cmd" )
                 bl_fm = imax * ($bl_max - $bl_min)
                 bl_fd = ($max_color * omax)
                 r = $bl_max / $bl_min
