@@ -11,8 +11,7 @@ Adaptive backlight daemon, using camera as light sensor.
 ## Dependencies
 *Note: It will tell when necessary tools are missing.*
 
-- posix shell (tested with [GNU Bash](http://tiswww.case.edu/php/chet/bash/bashtop.html) and [Dash](http://gondor.apana.org.au/~herbert/dash/))
-- [ncurses](https://www.gnu.org/software/ncurses/)
+- **POSIX shell** (tested with [GNU Bash](http://tiswww.case.edu/php/chet/bash/bashtop.html) and [Dash](http://gondor.apana.org.au/~herbert/dash/))
 - [FFMpeg](https://ffmpeg.org/)
 - [coreutils](https://www.gnu.org/software/coreutils/)
 - [awk](https://www.gnu.org/software/gawk/gawk.html)
@@ -21,7 +20,11 @@ Adaptive backlight daemon, using camera as light sensor.
 
 **Optional (alternative)**
 
-- [util-linux](https://www.kernel.org/pub/linux/utils/util-linux/)
+- [ncurses](https://www.gnu.org/software/ncurses/) - for colored output
+- [util-linux](https://www.kernel.org/pub/linux/utils/util-linux/) - use hexdump instead of od
+
+**Backlight control backends**
+
 - [light](https://github.com/haikarainen/light)
 - [xbacklight](https://gitlab.freedesktop.org/xorg/app/xbacklight) or [acpilight](sys-power/acpilight)
 
