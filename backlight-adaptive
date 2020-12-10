@@ -385,7 +385,7 @@ msg_info "Smoothing duration: $fade_frames frames"
 
 msg_debug '=== Processing start ==='
 b='stdbuf -oL'
-frames=$($grab || printf '-frames 1')
+frames=$($grab || printf -- '-frames 1')
 pix_fmt=$( printf '\x11' | $byteorder_test | awk 'FNR==1 { print substr($2,4,1) ? "gray16le" : "gray16be" }' )
 ifps=$( awk_cmd 'sprintf ("v4l2-ctl --device '${vdev}' -p %i\n", 1 / '$delay') | getline; print $5' )
 ffmpeg_cmd='stdbuf -o0 ffmpeg -v $([ $log_level_n -ge $debug ] && printf verbose || printf quiet) \
