@@ -430,12 +430,18 @@ msg_debug "==========================="
 
                 # init LPF
                 stage_frames = int( $fade_frames / 2 )
-                bl_step = stage_frames > 0 ? ($bl_max / $bl_min )^( 1 / stage_frames) : 0
+                bl_step = stage_frames > 0 ? r^( 1 / stage_frames) : 0
                 bl_log = to_log(bl_cur)
                 for (fi = 0; fi < stage_frames; fi += 1)
                         fbuf[fi] = bl_log
                 fi = 0
-                fsum = int (bl_log * stage_frames)
+                fsum = bl_log * stage_frames
+
+                # Minimum possible precision for sum in box filter
+                # used to contain numeric unstability by rounding samples to this precision before filter
+                prec_diff = int( log(stage_frames * $bl_max) / log(2) ) + 1
+                rnd_mul = stage_frames > 0 ? 2^(PREC - prec_diff) : 0
+
         }
 
         # start
@@ -450,11 +456,15 @@ msg_debug "==========================="
 
                         # sliding box filter to smooth linear transition
 
-                        p = to_log(bl_cur)
-                        fsum = int(fsum + p - fbuf[fi])
+                        p = int(to_log(bl_cur) * rnd_mul) / rnd_mul
+                        fsum = fsum + p - fbuf[fi]
                         fbuf[fi] = p
                         fi = (fi + 1) % stage_frames
                         p = from_log(fsum / stage_frames)
+
+                        # fix bounds violation due to unstability
+                        # unstability is contained but not removed
+                        p = p > $bl_max ? $bl_max : p < $bl_min ? $bl_min : p
 
                         if (bl == p) next
                 } else {
@@ -467,10 +477,6 @@ msg_debug "==========================="
                 "'printf ("brightness: %.02f%% input light: %u\n", 100 * p / '$bl_max', $1 / 256) > stderr'"
         }
         
-        p > $bl_max || p < 0 {
-                "'printf ("backlight value %.17f is out of range 0..'$bl_max'\n", p) > stderr'"
-        }
-
         # output
         { 
                 ERRNO=0
