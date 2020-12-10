@@ -40,6 +40,12 @@ toggle=false
 
 for vdev in /dev/video* ; do break; done
 
+isnum() {
+        for n in "$@"; do case ${n#[+-]} in
+        ''|*[!0-9.]* | '.' | *.*.*) return 1
+        esac; done
+}
+
 # Config - find & load or create new
 
 print_options() {
@@ -67,18 +73,50 @@ then
         then
                 { while IFS='=' read name v; do
                         case $name in
-                        watch_conf  ) watch_conf="$v";   continue;;
+                        watch_conf  )
+                                case "$v" in true | false )
+                                        watch_conf="$v"
+                                esac
+                                continue;;
                         acpi_dev    ) acpi_dev="$v";     continue;;
                         backend_args) backend_args="$v"; continue;;
                         backends    ) backends="$v";     continue;;
-                        delay       ) delay="$v";        continue;;
-                        fade_frames ) fade_frames="$v";  continue;;
+                        delay       )
+                                if isnum "$v"; then
+                                        delay="$v"
+                                fi
+                                continue;;
+                        fade_frames )
+                                if isnum "$v"; then
+                                        fade_frames="$v"
+                                fi
+                                continue;;
                         grab        ) grab="$v";         continue;;
-                        log_level   ) log_level="$v";    continue;;
-                        log_color   ) log_color="$v";    continue;;
-                        maxbright   ) maxbright="$v";    continue;;
-                        max_color   ) max_color="$v";    continue;;
-                        minbright   ) minbright="$v";    continue;;
+                        log_level   )
+                                if isnum "$v"; then
+                                        log_level="$v"
+                                fi
+                                continue;;
+                        log_color   )
+                                case "$v" in true | false )
+                                        log_color="$v"
+                                esac
+                                continue;;
+                        maxbright   )
+                                if isnum "$v"; then
+                                        maxbright="$v"
+                                fi
+                                continue;;
+                        max_color   )
+                                if isnum "$v"; then
+                                        max_color="$v"
+                                fi
+                                continue;;
+                        minbright   )
+                                if isnum "$v"; then
+                                        minbright="$v"
+                                fi
+                                continue;;
                         * )
                                 printf '%s\n' "Unknown config option '${name}'"
                                 continue;;
@@ -115,22 +153,40 @@ show_help() {
 
 while [ $# -gt 0 ]; do
         case $1 in
-        '-d' | '--delay' ) delay="$2"
+        '-d' | '--delay' )
+                if isnum "$2"; then
+                        delay="$2"
+                fi
                 shift ;;
         '-g' | '--no-grab' ) grab=false ;;
-        '-l' | '--log' )   log_level="$2"
+        '-l' | '--log' )
+                if isnum "$2"; then
+                        log_level="$2"
+                fi
                 shift ;;
         '-c' | '--color'   )
                 case "$2" in true | false )
-                        log_color="$2";;
+                        log_color="$2"
                 esac; shift ;;
-        '--bl-max' )  maxbright="$2"
+        '--bl-max' )
+                if isnum "$2"; then
+                        maxbright="$2"
+                fi
                 shift ;;
-        '--bl-min' ) minbright="$2"
+        '--bl-min' )
+                if isnum "$2"; then
+                        minbright="$2"
+                fi
                 shift ;;
-        '--max-color' ) max_color="$2"
+        '--max-color' )
+                if isnum "$2"; then
+                        max_color="$2"
+                fi
                 shift ;;
-        '-s' | '--smooth' ) fade_frames=$(( $2 < 0 ? 0 : $2 ))
+        '-s' | '--smooth' )
+                if isnum "$2"; then
+                        fade_frames=$(( $2 < 0 ? 0 : $2 ))
+                fi
                 shift ;;
         '-a' | '--acpi-dev' ) acpi_dev="$2"
                 shift ;;
