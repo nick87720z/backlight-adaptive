@@ -103,7 +103,7 @@ show_help() {
         printf '%s\n' "    --bl-max    FLOAT       Maximum backlight level (%)"
         printf '%s\n' "    --bl-min    FLOAT       Minimum backlight level (%)"
         printf '%s\n' "    --max-color INTEGER     Color value for full backlight level"
-        printf '%s\n' "-s, --smooth    INTEGER     Light change smoothness (frames, 1..128)"
+        printf '%s\n' "-s, --smooth    INTEGER     Frames number to smooth (0 to disable)"
         printf '%s\n' "-t, --toggle                Stop runing instance or run as new"
         printf '%s\n' "-h, --help                  Show this help"
 }
@@ -129,7 +129,7 @@ while [ $# -gt 0 ]; do
                 shift ;;
         '--max-color' ) max_color="$2"
                 shift ;;
-        '-s' | '--smooth' ) fade_frames=$(( $2 > 128 ? 128 : $2 < 0 ? 0 : $2 ))
+        '-s' | '--smooth' ) fade_frames=$(( $2 < 0 ? 0 : $2 ))
                 shift ;;
         '-a' | '--acpi-dev' ) acpi_dev="$2"
                 shift ;;
