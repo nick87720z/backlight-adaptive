@@ -475,7 +475,24 @@ msg_debug "==========================="
         }
         function from_log(x) {
                 return $bl_min * r^((x - $bl_min) / d)
+        }"'
+        function filt_init(f, l, v) {
+                for (i = 0; i < l; i += 1)
+                        f[i] = v
+                f["l"] = l
+                f["s"] = v * l
+                f["i"] = 0
         }
+        function filt_run(f, v) {
+                v = int(v * rnd_mul) / rnd_mul
+
+                l = f["l"]
+                f["i"] = ( (i = f["i"]) + 1 ) % l
+                c = (f["s"] += v - f[i]) / l
+                f[i] = v
+
+                return c
+        }'"
         BEGIN {
                 stderr = \"/dev/stderr\"
                 bl_sh = \"exec ${bl_sh} 2>/dev/null\"
@@ -494,12 +511,10 @@ msg_debug "==========================="
 
                 # init LPF
                 stage_frames = int( $fade_frames / 3 )
-                bl_step = stage_frames > 0 ? r^( 1 / ($fade_frames - stage_frames)) : 0
                 bl_log = to_log(bl_cur)
-                for (fi = 0; fi < stage_frames; fi += 1)
-                        fbuf[fi] = bl_log
-                fi = 0
-                fsum = bl_log * stage_frames
+                filt_init(filt1, stage_frames, bl_log)
+                filt_init(filt2, stage_frames, bl_log)
+                filt_init(filt3, stage_frames, bl_log)
 
                 # Minimum possible precision for sum in box filter
                 # used to contain numeric unstability by rounding samples to this precision before filter
@@ -514,17 +529,12 @@ msg_debug "==========================="
                 bl = $bl_min + \$1 * bl_fm / bl_fd
                 bl = bl > $bl_max ? $bl_max : bl < $bl_min ? $bl_min : bl
 
-                if (bl_step > 0) {
-                        if (bl > bl_cur ? (bl_cur *= bl_step) > bl : (bl_cur /= bl_step) < bl)
-                                bl_cur = bl
-
-                        # sliding box filter to smooth linear transition
-
-                        p = int(to_log(bl_cur) * rnd_mul) / rnd_mul
-                        fsum = fsum + p - fbuf[fi]
-                        fbuf[fi] = p
-                        fi = (fi + 1) % stage_frames
-                        p = from_log(fsum / stage_frames)
+                if (stage_frames > 0) {
+                        p = to_log(bl)
+                        p = filt_run(filt1, p)
+                        p = filt_run(filt2, p)
+                        p = filt_run(filt3, p)
+                        p = from_log(p)
 
                         # fix bounds violation due to unstability
                         # unstability is contained but not removed
