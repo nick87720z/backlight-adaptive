@@ -87,9 +87,9 @@ then
                                 fi
                                 continue;;
                         fade_frames )
-                                if isnum "$v"; then
+                                case "$v" in [0-9,]* )
                                         fade_frames="$v"
-                                fi
+                                esac
                                 continue;;
                         grab        ) grab="$v";         continue;;
                         log_level   )
@@ -143,7 +143,7 @@ show_help() {
         printf '%s\n' "    --bl-max    FLOAT       Maximum backlight level (%)"
         printf '%s\n' "    --bl-min    FLOAT       Minimum backlight level (%)"
         printf '%s\n' "    --max-color INTEGER     Color value for full backlight level"
-        printf '%s\n' "-s, --smooth    INTEGER     Frames number to smooth (0 to disable)"
+        printf '%s\n' "-s, --smooth    INT,INT...  Frames number to smooth (0 to disable)"
         printf '%s\n' "-t, --toggle                Stop runing instance or run as new"
         printf '%s\n' "-w, --watchconf BOOLEAN     Auto-restart when configuration file is changed"
         printf '%s\n' "-u, --update-conf           Update configuration with command line options and new options"
@@ -185,9 +185,9 @@ while [ $# -gt 0 ]; do
                 fi
                 shift ;;
         '-s' | '--smooth' )
-                if isnum "$2"; then
-                        fade_frames=$(( $2 < 0 ? 0 : $2 ))
-                fi
+                case "$2" in [0-9,]* )
+                        fade_frames="$2"
+                esac
                 shift ;;
         '-a' | '--acpi-dev' ) acpi_dev="$2"
                 shift ;;
@@ -528,10 +528,7 @@ msg_debug "==========================="
                 d_log_r = d / log(r)
 
                 # init LPF
-
-                fade_sizes = \"20,20,10\"
-                split( fade_sizes, fade_len, \",\" )
-
+                split( \"${fade_frames}\", fade_len, \",\" )
                 use_fade = 0
                 for (j in fade_len) if (fade_len[j] > 0) {
                         use_fade = 1
@@ -547,7 +544,7 @@ msg_debug "==========================="
                 bl = $bl_min + \$1 * bl_fm / bl_fd
                 bl = bl_limit( bl )
 
-                if (use_fade > 0) {
+                if (use_fade) {
                         p = bl_limit( from_log( filt_run( filt, to_log(bl) ) ) )
                         if (bl == p) next
                 } else {
