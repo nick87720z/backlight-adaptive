@@ -531,13 +531,14 @@ msg_debug "==========================="
 
                 fade_sizes = \"20,20,10\"
                 split( fade_sizes, fade_len, \",\" )
-                filt_init( filt, fade_len, to_log(bl_cur) )
 
                 use_fade = 0
                 for (j in fade_len) if (fade_len[j] > 0) {
                         use_fade = 1
                         break
                 }
+                if (use_fade)
+                        filt_init( filt, fade_len, to_log(bl_cur) )
         }
 
         # start
