@@ -476,23 +476,41 @@ msg_debug "==========================="
         function from_log(x) {
                 return $bl_min * r^((x - $bl_min) / d)
         }"'
-        function filt_init(f, l, v) {
-                for (i = 0; i < l; i += 1)
-                        f[i] = v
-                f["l"] = l
-                f["s"] = v * l
-                f["i"] = 0
+        function filt_init(fa, len, v)
+        {
+                for (j in len) {
+                        l = int(len[j])
+                        prec_diff = int( log(l * '$bl_max') / log(2) ) + 1
+                        fa[j]["l"] = l
+                        fa[j]["s"] = v * l
+                        fa[j]["m"] = l > 0 ? 2^(PREC - prec_diff) : 0
+                        fa[j]["i"] = 0
+                        for (i = 0; i < l; i += 1)
+                                fa[j][i] = v
+                }
         }
-        function filt_run(f, v) {
-                v = int(v * rnd_mul) / rnd_mul
+        function filt_run(fa, v)
+        {
+                for (j in fa) {
+                        l = fa[j]["l"]
+                        s = fa[j]["s"]
+                        i = fa[j]["i"]
+                        m = fa[j]["m"]
 
-                l = f["l"]
-                f["i"] = ( (i = f["i"]) + 1 ) % l
-                c = (f["s"] += v - f[i]) / l
-                f[i] = v
+                        v = int(v * m) / m
+                        s += v - fa[j][i]
+                        fa[j][i] = v
+                        v = s / l
+                        i = (i + 1) % l
 
-                return c
+                        fa[j]["i"] = i
+                        fa[j]["s"] = s
+                }
+                return v
         }'"
+        function bl_limit(v) {
+                return v > $bl_max ? $bl_max : v < $bl_min ? $bl_min : v
+        }
         BEGIN {
                 stderr = \"/dev/stderr\"
                 bl_sh = \"exec ${bl_sh} 2>/dev/null\"
@@ -510,36 +528,26 @@ msg_debug "==========================="
                 d_log_r = d / log(r)
 
                 # init LPF
-                stage_frames = int( $fade_frames / 3 )
-                bl_log = to_log(bl_cur)
-                filt_init(filt1, stage_frames, bl_log)
-                filt_init(filt2, stage_frames, bl_log)
-                filt_init(filt3, stage_frames, bl_log)
 
-                # Minimum possible precision for sum in box filter
-                # used to contain numeric unstability by rounding samples to this precision before filter
-                prec_diff = int( log(stage_frames * $bl_max) / log(2) ) + 1
-                rnd_mul = stage_frames > 0 ? 2^(PREC - prec_diff) : 0
+                fade_sizes = \"20,20,10\"
+                split( fade_sizes, fade_len, \",\" )
+                filt_init( filt, fade_len, to_log(bl_cur) )
 
+                use_fade = 0
+                for (j in fade_len) if (fade_len[j] > 0) {
+                        use_fade = 1
+                        break
+                }
         }
 
         # start
         {
                 # map to backlight range
                 bl = $bl_min + \$1 * bl_fm / bl_fd
-                bl = bl > $bl_max ? $bl_max : bl < $bl_min ? $bl_min : bl
+                bl = bl_limit( bl )
 
-                if (stage_frames > 0) {
-                        p = to_log(bl)
-                        p = filt_run(filt1, p)
-                        p = filt_run(filt2, p)
-                        p = filt_run(filt3, p)
-                        p = from_log(p)
-
-                        # fix bounds violation due to unstability
-                        # unstability is contained but not removed
-                        p = p > $bl_max ? $bl_max : p < $bl_min ? $bl_min : p
-
+                if (use_fade > 0) {
+                        p = bl_limit( from_log( filt_run( filt, to_log(bl) ) ) )
                         if (bl == p) next
                 } else {
                         if (bl == p) next
