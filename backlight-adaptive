@@ -490,8 +490,8 @@ msg_debug "==========================="
                 d_log_r = d / log(r)
 
                 # init LPF
-                stage_frames = int( $fade_frames / 2 )
-                bl_step = stage_frames > 0 ? r^( 1 / stage_frames) : 0
+                stage_frames = int( $fade_frames / 3 )
+                bl_step = stage_frames > 0 ? r^( 1 / ($fade_frames - stage_frames)) : 0
                 bl_log = to_log(bl_cur)
                 for (fi = 0; fi < stage_frames; fi += 1)
                         fbuf[fi] = bl_log
