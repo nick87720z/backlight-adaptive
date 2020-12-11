@@ -50,6 +50,7 @@ Disable colors:
 ## Configuration
 
 Configuration file is automatically created if no other file exists and writeable config directory is found.
+Further update may be forced with --update-conf or -u command line option.
 Possible places for configuration file:
 
 - $XDG_CONFIG_DIR

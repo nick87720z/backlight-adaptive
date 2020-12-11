@@ -146,6 +146,7 @@ show_help() {
         printf '%s\n' "-s, --smooth    INTEGER     Frames number to smooth (0 to disable)"
         printf '%s\n' "-t, --toggle                Stop runing instance or run as new"
         printf '%s\n' "-w, --watchconf BOOLEAN     Auto-restart when configuration file is changed"
+        printf '%s\n' "-u, --update-conf           Update configuration with command line options and new options"
         printf '%s\n' "-h, --help                  Show this help"
 }
 
@@ -201,6 +202,8 @@ while [ $# -gt 0 ]; do
                 case "$2" in true | false )
                         watchconf="$2"
                 esac; shift ;;
+        '-u' | '--update-conf' )
+                save_config ;;
         '-h' | '--help' ) show_help
                 exit ;;
         '--' ) backend_args="$*"
