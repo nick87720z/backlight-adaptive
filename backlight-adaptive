@@ -212,9 +212,17 @@ while [ $# -gt 0 ]; do
         shift
 done
 
+check_dep() {
+        which $1 > /dev/null 2>&1
+        return $?
+}
+
 # Configure terminal font controls
 
-if ! ${log_color}; then
+if $log_color && ! check_dep tput; then
+        log_color=false
+fi
+if ! $log_color; then
         tput() { :; }
 fi
 
@@ -275,15 +283,15 @@ msg_info "Config file: ${bold}$(col green)${config_file}"
 # Depepdency check
 
 msg_info "Checking dependencies"
-for dep in tput inotifywait ffmpeg tr awk v4l2-ctl; do
-        if ! [ "$(which $dep 2>/dev/null)" ]; then
+for dep in ffmpeg awk v4l2-ctl; do
+        if ! check_dep "$dep"; then
                 msg_error "${dep} executable required but not found"
                 abort=1
         fi
 done
 # binary stream printer
 for hextool in hexdump od; do
-        if which $hextool > /dev/null; then
+        if check_dep "$hextool"; then
                 break
         fi
         hextool=
@@ -304,6 +312,10 @@ case "$hextool" in
 esac
 if [ "$abort" ]; then
         exit 1
+fi
+if $watch_conf && ! check_dep inotifywait; then
+        watch_conf=false
+        msg_warning "Command 'inotifywait' is not found. Configuration watch will not work."
 fi
 msg_info "Found hex printer: ${bold}$(col green)${hextool}"
 msg_debug "hexprinter: ${hexprinter}"
