@@ -147,9 +147,9 @@ show_help() {
         printf '%s\n' "-B, --list-backends         List available backends"
         printf '%s\n' "-l, --log       STRING      Log verbosity. One of: error, warning, info, debug"
         printf '%s\n' "-c, --color     BOOLEAN     Colorize output"
-        printf '%s\n' "    --bl-max    FLOAT       Maximum backlight level (%)"
-        printf '%s\n' "    --bl-min    FLOAT       Minimum backlight level (%)"
-        printf '%s\n' "    --max-color INTEGER     Color value for full backlight level"
+        printf '%s\n' "-M, --bl-max    FLOAT       Maximum backlight level (%)"
+        printf '%s\n' "-m, --bl-min    FLOAT       Minimum backlight level (%)"
+        printf '%s\n' "-C, --max-color INTEGER     Color value for full backlight level"
         printf '%s\n' "    --calibrate             Update light level for full backlight"
         printf '%s\n' "-s, --smooth    INT,INT...  Frames number to smooth (0 to disable)"
         printf '%s\n' "-t, --toggle                Stop runing instance or run as new"
@@ -174,17 +174,17 @@ while [ $# -gt 0 ]; do
                 case "$2" in true | false )
                         log_color="$2"
                 esac; shift ;;
-        '--bl-max' )
+        '-M' | '--bl-max' )
                 if isnum "$2"; then
                         maxbright="$2"
                 fi
                 shift ;;
-        '--bl-min' )
+        '-m' | '--bl-min' )
                 if isnum "$2"; then
                         minbright="$2"
                 fi
                 shift ;;
-        '--max-color' )
+        '-C' | '--max-color' )
                 if isnum "$2"; then
                         max_color="$2"
                 fi
