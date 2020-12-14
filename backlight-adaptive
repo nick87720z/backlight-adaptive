@@ -54,6 +54,11 @@ print()   { printf '%s\n' "$1"; }
 awk_expr() { awk 'BEGIN { printf ("%.17g", '"$1"') }'; }
 awk_cmd()  { awk "BEGIN { $* }"; }
 
+h_opt() { print "  $1"; }
+h_grp() {
+        newline
+        print "$1"
+        newline
 }
 
 set_num() {
@@ -130,25 +135,42 @@ fi
 # Arguments loading
 
 show_help() {
-        printf '%s\n' "Usage: $(basename $0) [options] -- [backend options]"
-        printf '%s\n' "Options:"
-        printf '%s\n' "-d, --delay     FLOAT       Snapshots delay (seconds)"
-        printf '%s\n' "-g, --no-grab               Don't keep camera busy all time"
-        printf '%s\n' "-a, --acpi-dev  NAME        ACPI device to be controlled"
-        printf '%s\n' "-v, --video-dev DEVICE      Video device used as sensor (e.g. /dev/video0)"
-        printf '%s\n' "-b, --backends  STR,STR...  Comma-separated list of backlight control backends"
-        printf '%s\n' "-B, --list-backends         List available backends"
-        printf '%s\n' "-l, --log       STRING      Log verbosity. One of: error, warning, info, debug"
-        printf '%s\n' "-c, --color     BOOLEAN     Colorize output"
-        printf '%s\n' "-M, --bl-max    FLOAT       Maximum backlight level (%)"
-        printf '%s\n' "-m, --bl-min    FLOAT       Minimum backlight level (%)"
-        printf '%s\n' "-C, --max-color INTEGER     Color value for full backlight level"
-        printf '%s\n' "    --calibrate             Update light level for full backlight"
-        printf '%s\n' "-s, --smooth    INT,INT...  Frames number to smooth (0 to disable)"
-        printf '%s\n' "-t, --toggle                Stop runing instance or run as new"
-        printf '%s\n' "-w, --watchconf BOOLEAN     Auto-restart when configuration file is changed"
-        printf '%s\n' "-u, --update-conf           Update configuration with command line options and new options"
-        printf '%s\n' "-h, --help                  Show this help"
+        print "Usage: $(basename $0) [options] -- [backend options]"
+        newline
+        print "Adapt backlight to ambient light using web camera as light sensor."
+
+        h_grp "Capture options:"
+        h_opt "-v, --video-dev DEVICE      Video device used as sensor (e.g. /dev/video0)"
+        h_opt "-g, --no-grab               Don't keep camera busy all time"
+
+        h_grp "Backend options:"
+        h_opt "-a, --acpi-dev  NAME        ACPI device to be controlled"
+        h_opt "-b, --backends  STR,STR...  Comma-separated list of backlight control backends"
+        h_opt "-B, --list-backends         List available backends"
+
+        h_grp "Intensity options:"
+        h_opt "-M, --bl-max    FLOAT       Maximum backlight level (%)"
+        h_opt "-m, --bl-min    FLOAT       Minimum backlight level (%)"
+        h_opt "-C, --max-color INTEGER     Color value for full backlight level"
+
+        h_grp "Reaction options:"
+        h_opt "-d, --delay     FLOAT       Snapshots delay (seconds)"
+        h_opt "-s, --smooth    INT,INT...  Frames number to smooth (0 to disable)"
+
+        h_grp "Configuration options:"
+        h_opt "-w, --watchconf BOOLEAN     Auto-restart when configuration file is changed"
+        h_opt "-u, --update-conf           Update configuration with command line options and new options"
+
+        h_grp "Output options:"
+        h_opt "-l, --log       STRING      Log verbosity. One of: error, warning, info, debug"
+        h_opt "-c, --color     BOOLEAN     Colorize output"
+
+        h_grp "Instance control commands:"
+        h_opt "-t, --toggle                Stop runing instance or run as new"
+        h_opt "    --calibrate             Update light level for full backlight"
+
+        h_grp "Help:"
+        h_opt "-h, --help                  Show this help"
 }
 
 while [ $# -gt 0 ]; do
