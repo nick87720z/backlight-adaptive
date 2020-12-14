@@ -40,10 +40,20 @@ toggle=false
 
 for vdev in /dev/video* ; do break; done
 
+# helpers
+
 isnum() {
         for n in "$@"; do case ${n#[+-]} in
         ''|*[!0-9.]* | '.' | *.*.*) return 1
         esac; done
+}
+
+awk_expr() {
+        printf '\n' | awk '{ printf ("%.17g", '"$1"') }'
+}
+
+awk_cmd() {
+        printf '\n' | awk "{ $* }"
 }
 
 # Config - find & load or create new
@@ -368,8 +378,8 @@ for backend in $( printf '%s' "$backends" | tr ',' ' ' ) ; do
                 fi
                 
                 # Translate brightness limits to raw backlight range
-                bl_max=$(( maxbright * $(cat ${acpi_dir}/max_brightness) / 100 ))
-                bl_min=$(( minbright * $(cat ${acpi_dir}/max_brightness) / 100 ))
+                bl_max=$( awk_expr "$maxbright * $(cat ${acpi_dir}/max_brightness) / 100" )
+                bl_min=$( awk_expr "$minbright * $(cat ${acpi_dir}/max_brightness) / 100" )
 
                 bl_get_cmd="cat '${acpi_dir}/brightness'"
                 bl_sh="cat > '${acpi_dir}/brightness'"
@@ -450,14 +460,6 @@ trap "restart" USR1
 trap "input_max" USR2
 
 # Processing pipeline
-
-awk_expr() {
-        printf '\n' | awk '{ printf ("%.17g", '"$1"') }'
-}
-
-awk_cmd() {
-        printf '\n' | awk "{ $* }"
-}
 
 set -m
 
