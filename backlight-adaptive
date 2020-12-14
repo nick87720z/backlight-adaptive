@@ -102,11 +102,7 @@ then
                                 esac
                                 continue;;
                         grab        ) grab="$v";         continue;;
-                        log_level   )
-                                if isnum "$v"; then
-                                        log_level="$v"
-                                fi
-                                continue;;
+                        log_level   ) log_level="$v";    continue;;
                         log_color   )
                                 case "$v" in true | false )
                                         log_color="$v"
@@ -170,10 +166,7 @@ while [ $# -gt 0 ]; do
                 fi
                 shift ;;
         '-g' | '--no-grab' ) grab=false ;;
-        '-l' | '--log' )
-                if isnum "$2"; then
-                        log_level="$2"
-                fi
+        '-l' | '--log' ) log_level="$2"
                 shift ;;
         '-c' | '--color'   )
                 case "$2" in true | false )
