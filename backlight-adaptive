@@ -621,8 +621,8 @@ while :; do
                 msg_info 'Restart...'; rm $pidfile; 
                 eval exec "$0 $startup_args" ;;
         'input_max' )
-                frames=1
-                max_color=$( ffmpeg -v quiet -f v4l2 -s 1x1 -i "${vdev}" -frames 1 -vcodec rawvideo -f rawvideo -vf scale=1:1:flags=area+accurate_rnd,format=gray - | od -An -w1 -tu1 | tr -d ' ' )
+                frames=$( awk_expr "($delay >= 1 ? 1 : int(1 / $delay)) + 1" )
+                max_color=$( ffmpeg -v quiet -f v4l2 -s 1x1 -i "${vdev}" -frames 1 -vcodec rawvideo -f rawvideo -vf scale=1:1:flags=area+accurate_rnd,format=gray - | tail -c1 | od -An -w1 -tu1 | tr -d ' ' )
                 msg_info "New light maximum: $max_color / 255"
                 save_config
 
