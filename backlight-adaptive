@@ -61,7 +61,7 @@ save_config() {
 
 # Search for either config file or writable config dir
 for config_dir in "${XDG_CONFIG_PATH}" ~/.config /etc ; do
-        [ -f "${config_dir}/${progname}" -o \( -d "${config_dir}" -a -w "${config_dir}" \) ] && break
+        [ -f "${config_dir}/${progname}" -o \( -d "${config_dir}" -a -w "${config_dir}" \) ] && break ||:
         config_dir=
 done
 
@@ -268,10 +268,10 @@ msg_color() {
         shift
         printf '%s\n' "$(col $c)$*$sgr0"
 }
-msg_debug()   { [ $log_level_n -ge $debug   ] && printf '%s\n' "$*${sgr0}"; }
-msg_info()    { [ $log_level_n -ge $info    ] && msg_color blue   "$*"; }
-msg_warning() { [ $log_level_n -ge $warning ] && msg_color yellow "$*"; }
-msg_error()   { [ $log_level_n -ge $error   ] && msg_color red    "$*"; }
+msg_debug()   { [ $log_level_n -ge $debug   ] && printf '%s\n' "$*${sgr0}" ||:; }
+msg_info()    { [ $log_level_n -ge $info    ] && msg_color blue   "$*" ||:; }
+msg_warning() { [ $log_level_n -ge $warning ] && msg_color yellow "$*" ||:; }
+msg_error()   { [ $log_level_n -ge $error   ] && msg_color red    "$*" ||:; }
 
 fatal() {
         msg_error "$@"
