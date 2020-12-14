@@ -59,7 +59,7 @@ $ backlight-adaptive --color false
 
 **Backlight change smoothing**
 
-Backlight can change smoothly by using multiple box filter stages. Box filters are effective at any buffer length, and 3 of them are enough to get result, comparable by quality with gaussian or cubic spline. Buffer sizes are specified independently for each filter in for of comma-separated number list (no spaces).
+Backlight can change smoothly by using multiple box filter stages. Box filters are effective at any buffer length, and 3 of them are enough to get result, comparable by quality with gaussian or cubic spline. Buffer sizes are specified independently for each filter in form of comma-separated number list (no spaces).
 
 Example:
 ```
