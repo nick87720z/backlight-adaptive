@@ -37,6 +37,7 @@ backends="${backends_all}"
 backend_args=
 
 toggle=false
+calibrate=false
 
 for vdev in /dev/video* ; do break; done
 
@@ -149,6 +150,7 @@ show_help() {
         printf '%s\n' "    --bl-max    FLOAT       Maximum backlight level (%)"
         printf '%s\n' "    --bl-min    FLOAT       Minimum backlight level (%)"
         printf '%s\n' "    --max-color INTEGER     Color value for full backlight level"
+        printf '%s\n' "    --calibrate             Update light level for full backlight"
         printf '%s\n' "-s, --smooth    INT,INT...  Frames number to smooth (0 to disable)"
         printf '%s\n' "-t, --toggle                Stop runing instance or run as new"
         printf '%s\n' "-w, --watchconf BOOLEAN     Auto-restart when configuration file is changed"
@@ -187,6 +189,7 @@ while [ $# -gt 0 ]; do
                         max_color="$2"
                 fi
                 shift ;;
+        '--calibrate' ) calibrate=true ;;
         '-s' | '--smooth' )
                 case "$2" in [0-9,]* )
                         fade_frames="$2"
@@ -419,6 +422,10 @@ elif [ -f "$pidfile" ]; then
 
         read pid < $pidfile
         if [ "$pid" -a "$(ps $pid | grep $pid)" ] ; then
+                if $calibrate; then
+                        kill -s USR2 $pid
+                fi
+
                 if $toggle; then
                         msg_info "Terminating instance $pid"
                         kill $pid
