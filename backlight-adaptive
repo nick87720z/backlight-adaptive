@@ -36,8 +36,7 @@ acpi_dev=
 backends="${backends_all}"
 backend_args=
 
-toggle=false
-calibrate=false
+ctl_action=
 
 for vdev in /dev/video* ; do break; done
 
@@ -49,23 +48,43 @@ isnum() {
         esac; done
 }
 
-awk_expr() {
-        printf '\n' | awk '{ printf ("%.17g", '"$1"') }'
+newline() { printf '\n'; }
+print()   { printf '%s\n' "$1"; }
+
+awk_expr() { awk 'BEGIN { printf ("%.17g", '"$1"') }'; }
+awk_cmd()  { awk "BEGIN { $* }"; }
+
 }
 
-awk_cmd() {
-        printf '\n' | awk "{ $* }"
+set_num() {
+        if isnum "$2"; then
+                eval $1="'$2'"
+        fi
+}
+set_bool() {
+        case "$2" in true | false )
+                eval $1="'$2'"
+        esac
+}
+set_int_list() {
+        case "$2" in [0-9,]* )
+                eval $1="'$2'"
+        esac
+}
+
+cmd_avail() {
+        type $1 > /dev/null 2>&1
+        return $?
 }
 
 # Config - find & load or create new
 
 print_options() {
         while [ $# -gt 0 ]; do
-                eval printf '%s\\n' "$1=\$$1"
+                eval print "$1=\$$1"
                 shift
         done
 }
-
 save_config() {
         print_options watch_conf fade_frames delay grab log_level log_color max_color maxbright minbright acpi_dev backends backend_args | sort > "${config_file}"
 }
@@ -84,48 +103,20 @@ then
         then
                 { while IFS='=' read name v; do
                         case $name in
-                        watch_conf  )
-                                case "$v" in true | false )
-                                        watch_conf="$v"
-                                esac
-                                continue;;
+                        watch_conf  ) set_bool watch_conf "$v"; continue;;
                         acpi_dev    ) acpi_dev="$v";     continue;;
                         backend_args) backend_args="$v"; continue;;
                         backends    ) backends="$v";     continue;;
-                        delay       )
-                                if isnum "$v"; then
-                                        delay="$v"
-                                fi
-                                continue;;
-                        fade_frames )
-                                case "$v" in [0-9,]* )
-                                        fade_frames="$v"
-                                esac
-                                continue;;
+                        delay       ) set_num delay "$v"; continue;;
+                        fade_frames ) set_int_list fade_frames "$v"; continue;;
                         grab        ) grab="$v";         continue;;
                         log_level   ) log_level="$v";    continue;;
-                        log_color   )
-                                case "$v" in true | false )
-                                        log_color="$v"
-                                esac
-                                continue;;
-                        maxbright   )
-                                if isnum "$v"; then
-                                        maxbright="$v"
-                                fi
-                                continue;;
-                        max_color   )
-                                if isnum "$v"; then
-                                        max_color="$v"
-                                fi
-                                continue;;
-                        minbright   )
-                                if isnum "$v"; then
-                                        minbright="$v"
-                                fi
-                                continue;;
+                        log_color   ) set_bool log_color "$v"; continue;;
+                        maxbright   ) set_num maxbright "$v"; continue;;
+                        minbright   ) set_num minbright "$v"; continue;;
+                        max_color   ) set_num max_color "$v"; continue;;
                         * )
-                                printf '%s\n' "Unknown config option '${name}'"
+                                print "Unknown config option '${name}'"
                                 continue;;
                         esac
                 done; } < ~/.config/${progname}
@@ -135,6 +126,8 @@ then
                 unset config_file
         fi
 fi
+
+# Arguments loading
 
 show_help() {
         printf '%s\n' "Usage: $(basename $0) [options] -- [backend options]"
@@ -158,74 +151,37 @@ show_help() {
         printf '%s\n' "-h, --help                  Show this help"
 }
 
-# Arguments loading
-
 while [ $# -gt 0 ]; do
         case $1 in
-        '-d' | '--delay' )
-                if isnum "$2"; then
-                        delay="$2"
-                fi
-                shift ;;
+        '-d' | '--delay' ) set_num delay "$2";             shift ;;
         '-g' | '--no-grab' ) grab=false ;;
-        '-l' | '--log' ) log_level="$2"
-                shift ;;
-        '-c' | '--color'   )
-                case "$2" in true | false )
-                        log_color="$2"
-                esac; shift ;;
-        '-M' | '--bl-max' )
-                if isnum "$2"; then
-                        maxbright="$2"
-                fi
-                shift ;;
-        '-m' | '--bl-min' )
-                if isnum "$2"; then
-                        minbright="$2"
-                fi
-                shift ;;
-        '-C' | '--max-color' )
-                if isnum "$2"; then
-                        max_color="$2"
-                fi
-                shift ;;
-        '--calibrate' ) calibrate=true ;;
-        '-s' | '--smooth' )
-                case "$2" in [0-9,]* )
-                        fade_frames="$2"
-                esac
-                shift ;;
-        '-a' | '--acpi-dev' ) acpi_dev="$2"
-                shift ;;
-        '-v' | '--video-dev' ) vdev="$2"
-                shift ;;
-        '-b' | '--backends' ) backends="$2"
-                shift ;;
-        '-B' | '--list-backends' ) printf '%s\n' "${backends_all}"
+        '-l' | '--log' ) log_level="$2";                   shift ;;
+        '-c' | '--color'   ) set_bool log_color "$2";      shift ;;
+        '-M' | '--bl-max' ) set_num maxbright "$2";        shift ;;
+        '-m' | '--bl-min' ) set_num minbright "$2";        shift ;;
+        '-C' | '--max-color' ) set_num max_color "$2";     shift ;;
+        '--calibrate' ) ctl_action=cal ;;
+        '-s' | '--smooth' ) set_int_list fade_frames "$2"; shift ;;
+        '-a' | '--acpi-dev' ) acpi_dev="$2";               shift ;;
+        '-v' | '--video-dev' ) vdev="$2";                  shift ;;
+        '-b' | '--backends' ) backends="$2";               shift ;;
+        '-B' | '--list-backends' ) print "${backends_all}"
                 exit ;;
-        '-t' | '--toggle' ) toggle=true;;
-        '-w' | '--watchconf' )
-                case "$2" in true | false )
-                        watchconf="$2"
-                esac; shift ;;
-        '-u' | '--update-conf' )
-                save_config ;;
+        '-t' | '--toggle' ) ctl_action=toggle;;
+        '-w' | '--watchconf' ) set_bool watch_conf "$2";   shift ;;
+        '-u' | '--update-conf' ) save_config ;;
         '-h' | '--help' ) show_help
                 exit ;;
         '--' ) backend_args="$*"
                 break ;;
+        *    ) echo "Invalid option '$1'" ;;
         esac
         shift
 done
 
-check_dep() {
-        which $1 > /dev/null 2>&1
-        return $?
-}
-
 # Configure terminal font controls
 
-if $log_color && ! check_dep tput; then
+if $log_color && ! cmd_avail tput; then
         log_color=false
 fi
 if ! $log_color; then
@@ -237,11 +193,6 @@ i=0; for c in black red green yellow blue pink cyan gray; do
         eval "$c=$i"
         i=$(( i+1 ))
 done; unset i c
-isnum() {
-        for n in "$@"; do case ${n#[+-]} in
-        ''|*[!0-9.]* | '.' | *.*.*) return 1
-        esac; done
-}
 # color set helper
 col() {
         if isnum $1; then
@@ -272,9 +223,9 @@ eval log_level_n=\$$log_level
 msg_color() {
         local c=$1
         shift
-        printf '%s\n' "$(col $c)$*$sgr0"
+        print "$(col $c)$*$sgr0"
 }
-msg_debug()   { [ $log_level_n -ge $debug   ] && printf '%s\n' "$*${sgr0}" ||:; }
+msg_debug()   { [ $log_level_n -ge $debug   ] && print "$*${sgr0}" ||:; }
 msg_info()    { [ $log_level_n -ge $info    ] && msg_color blue   "$*" ||:; }
 msg_warning() { [ $log_level_n -ge $warning ] && msg_color yellow "$*" ||:; }
 msg_error()   { [ $log_level_n -ge $error   ] && msg_color red    "$*" ||:; }
@@ -288,16 +239,18 @@ msg_info "Config file: ${bold}$(col green)${config_file}"
 
 # Depepdency check
 
+# core depepdencies
 msg_info "Checking dependencies"
-for dep in ffmpeg awk v4l2-ctl; do
-        if ! check_dep "$dep"; then
+for dep in tr ffmpeg awk v4l2-ctl cat tail; do
+        if ! cmd_avail "$dep"; then
                 msg_error "${dep} executable required but not found"
                 abort=1
         fi
 done
+
 # binary stream printer
 for hextool in hexdump od; do
-        if check_dep "$hextool"; then
+        if cmd_avail "$hextool"; then
                 break
         fi
         hextool=
@@ -319,13 +272,15 @@ esac
 if [ "$abort" ]; then
         exit 1
 fi
-if $watch_conf && ! check_dep inotifywait; then
-        watch_conf=false
-        msg_warning "Command 'inotifywait' is not found. Configuration watch will not work."
-fi
 msg_info "Found hex printer: ${bold}$(col green)${hextool}"
 msg_debug "hexprinter: ${hexprinter}"
 msg_debug "byteorder_test: ${byteorder_test}"
+
+# config watch (optional)
+if $watch_conf && ! cmd_avail inotifywait; then
+        watch_conf=false
+        msg_warning "Command 'inotifywait' is not found. Configuration watch will not work."
+fi
 
 # Choose backlight control tool
 
@@ -333,20 +288,20 @@ msg_info "Searching usable backend"
 if [ ! "${backends}" ]; then
         fatal "Backends are not set"
 fi
-for backend in $( printf '%s' "$backends" | tr ',' ' ' ) ; do
+for backend in $( print "$backends" | tr ',' ' ' ) ; do
         msg_info "Checking backend ${bold}$(col green)$backend"
         bl_max=${maxbright}
         bl_min=${minbright}
         case "$backend" in
         light )
-                which ${backend} >/dev/null 2>&1 || continue
+                type ${backend} >/dev/null 2>&1 || continue
                 bl_get_cmd='light -G'
                 bl_sh="sh"
                 bl_fmt="light -S %f ${backend_args}\n"
                 break
         ;;
         xbacklight )
-                which ${backend} >/dev/null 2>&1 || continue
+                type ${backend} >/dev/null 2>&1 || continue
                 bl_get_cmd='xbacklight -get'
                 bl_sh="sh"
                 bl_fmt="xbacklight -set %f ${backend_args}\n"
@@ -374,8 +329,9 @@ for backend in $( printf '%s' "$backends" | tr ',' ' ' ) ; do
                 fi
                 
                 # Translate brightness limits to raw backlight range
-                bl_max=$( awk_expr "$maxbright * $(cat ${acpi_dir}/max_brightness) / 100" )
-                bl_min=$( awk_expr "$minbright * $(cat ${acpi_dir}/max_brightness) / 100" )
+                read bl_hwmax < ${acpi_dir}/max_brightness 
+                bl_max=$( awk_expr "$maxbright * $bl_hwmax / 100" )
+                bl_min=$( awk_expr "$minbright * $bl_hwmax / 100" )
 
                 bl_get_cmd="cat '${acpi_dir}/brightness'"
                 bl_sh="cat > '${acpi_dir}/brightness'"
@@ -422,21 +378,21 @@ elif [ -f "$pidfile" ]; then
 
         read pid < $pidfile
         if [ "$pid" -a "$(ps $pid | grep $pid)" ] ; then
-                if $calibrate; then
-                        kill -s USR2 $pid
-                fi
+                case $ctl_action in
 
-                if $toggle; then
-                        msg_info "Terminating instance $pid"
-                        kill $pid
-                else
-                        msg_warning "Found runing instance, exiting."
-                fi
+                toggle) msg_info "Terminating instance $pid"
+                        kill $pid ;;
+
+                cal   ) kill -s USR2 $pid ;;
+
+                *     ) msg_warning "Found runing instance, exiting." ;;
+
+                esac
                 exit
         fi
 fi
 
-printf '%s\n' "$$" > "$pidfile"
+print "$$" > "$pidfile"
 
 # Event loop setup
 
