@@ -383,6 +383,10 @@ done
 if [ ! "${backend}" ]; then
         fatal "No working backends found"
 fi
+if [ "$fade_frames" != 0 -a "$bl_min" = 0 ]; then
+        msg_warning "Minimum backlight can't be zero when fade is enabled. Set to 1 (of max $bl_max)"
+        bl_min=1
+fi
 msg_info "Using backend ${bold}$(col green)${backend}"
 msg_debug "bl_get_cmd: $bl_get_cmd"
 msg_debug "bl_sh     : $bl_sh"
@@ -483,10 +487,10 @@ msg_debug "==========================="
   | $b awk \
         -v bl_fmt="${bl_fmt}" \
         "function to_log(x) {
-                return $bl_min + log(x / $bl_min) * d_log_r
+                return bl_min + log(x / bl_min) * d_log_r
         }
         function from_log(x) {
-                return $bl_min * r^((x - $bl_min) / d)
+                return bl_min * r^((x - bl_min) / d)
         }"'
         function filt_init(fa, len, v)
         {
@@ -521,7 +525,7 @@ msg_debug "==========================="
                 return v
         }'"
         function bl_limit(v) {
-                return v > $bl_max ? $bl_max : v < $bl_min ? $bl_min : v
+                return v > $bl_max ? $bl_max : v < bl_min ? bl_min : v
         }
         BEGIN {
                 stderr = \"/dev/stderr\"
@@ -529,15 +533,13 @@ msg_debug "==========================="
                 PROCINFO[bl_sh, \"NONFATAL\"]=1
                 errno_prev = 0
                 errno_num = 0
+                bl_min = $bl_min
 
                 # speedup calculations
                 imax = 255 ; omax = 65535
                 bl_cur = $( eval exec "$bl_get_cmd" )
-                bl_fm = imax * ($bl_max - $bl_min)
+                bl_fm = imax * ($bl_max - bl_min)
                 bl_fd = ($max_color * omax)
-                r = $bl_max / $bl_min
-                d = $bl_max - $bl_min
-                d_log_r = d / log(r)
 
                 # init LPF
                 split( \"${fade_frames}\", fade_len, \",\" )
@@ -546,14 +548,18 @@ msg_debug "==========================="
                         use_fade = 1
                         break
                 }
-                if (use_fade)
+                if (use_fade) {
+                        r = $bl_max / bl_min
+                        d = $bl_max - bl_min
+                        d_log_r = d / log(r)
                         filt_init( filt, fade_len, to_log(bl_cur) )
+                }
         }
 
         # start
         {
                 # map to backlight range
-                bl = $bl_min + \$1 * bl_fm / bl_fd
+                bl = bl_min + \$1 * bl_fm / bl_fd
                 bl = bl_limit( bl )
 
                 if (use_fade) {
