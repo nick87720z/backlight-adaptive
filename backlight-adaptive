@@ -23,6 +23,7 @@ backends_all=internal,light,xbacklight
 
 watch_conf=true
 delay=0.1
+skip=0
 grab=true
 log_level=info
 log_color=false
@@ -113,6 +114,7 @@ then
                         backend_args) backend_args="$v"; continue;;
                         backends    ) backends="$v";     continue;;
                         delay       ) set_num delay "$v"; continue;;
+                        skip        ) set_num skip "$v"; continue;;
                         fade_frames ) set_int_list fade_frames "$v"; continue;;
                         grab        ) grab="$v";         continue;;
                         log_level   ) log_level="$v";    continue;;
@@ -142,6 +144,7 @@ show_help() {
         h_grp "Capture options:"
         h_opt "-v, --video-dev DEVICE      Video device used as sensor (e.g. /dev/video0)"
         h_opt "-g, --no-grab               Don't keep camera busy all time"
+        h_opt "-S, --skip      INTEGER     Frames number to skip at capture start"
 
         h_grp "Backend options:"
         h_opt "-a, --acpi-dev  NAME        ACPI device to be controlled"
@@ -176,6 +179,7 @@ show_help() {
 while [ $# -gt 0 ]; do
         case $1 in
         '-d' | '--delay' ) set_num delay "$2";             shift ;;
+        '-S' | '--skip'  ) set_num skip "$2";              shift ;;
         '-g' | '--no-grab' ) grab=false ;;
         '-l' | '--log' ) log_level="$2";                   shift ;;
         '-c' | '--color'   ) set_bool log_color "$2";      shift ;;
@@ -445,10 +449,11 @@ msg_info "Smoothing duration: $fade_frames frames"
 
 msg_debug '=== Processing start ==='
 b='stdbuf -oL'
+b0='stdbuf -o0'
 frames=$($grab || printf -- '-frames 1')
 pix_fmt=$( printf '\x11' | $byteorder_test | awk 'FNR==1 { print substr($2,4,1) ? "gray16le" : "gray16be" }' )
 ifps=$( awk_cmd 'sprintf ("v4l2-ctl --device '${vdev}' -p %i\n", 1 / '$delay') | getline; print $5' )
-ffmpeg_cmd='stdbuf -o0 ffmpeg -v $([ $log_level_n -ge $debug ] && printf verbose || printf quiet) \
+ffmpeg_cmd='$b ffmpeg -v $([ $log_level_n -ge $debug ] && printf verbose || printf quiet) \
         -f v4l2 -s 1x1 -r "${ifps}" -i "${vdev}"  \
         -vf scale=1:1:flags=area+accurate_rnd+print_info,format=${pix_fmt} \
         ${frames} -vcodec rawvideo -f rawvideo -r 1/${delay} -'
@@ -463,6 +468,10 @@ msg_debug "==========================="
                 sleep $delay | eval exec "${ffmpeg_cmd}"
         done; fi
   } </dev/null  \
+  | if [ $skip -eq 0 ]; then exec cat
+    else
+        exec $b0 tail -c+$(( skip + 1 ))
+    fi \
   | eval "exec $b $hexprinter" \
   | $b awk \
         -v bl_fmt="${bl_fmt}" \
