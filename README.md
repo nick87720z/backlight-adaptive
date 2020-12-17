@@ -12,8 +12,6 @@ Adaptive backlight daemon, using camera as light sensor.
 
 ## Dependencies
 
-*Note: It will tell when necessary tools are missing.*
-
 #### Minimum
 
 - **POSIX shell** (tested with [GNU Bash](http://tiswww.case.edu/php/chet/bash/bashtop.html) and [Dash](http://gondor.apana.org.au/~herbert/dash/))
@@ -32,6 +30,8 @@ Adaptive backlight daemon, using camera as light sensor.
 
 - [light](https://github.com/haikarainen/light)
 - [xbacklight](https://gitlab.freedesktop.org/xorg/app/xbacklight) or [acpilight](sys-power/acpilight)
+
+**Note:** It will tell when necessary tools are missing.
 
 ## Usage
 
@@ -75,7 +75,7 @@ Slow accomodation filter
 $ backlight-adaptive --smooth 120,120,20
 ```
 
-NOTE: Two equally sized filters seem to be most optimal setup.
+**Note:** Two equally sized filters seem to be most optimal setup.
 
 Lone one makes linear transition for lone jump between two stable levels, but for short fluctuation it will be just small but constant change for all duration. 2nd filter turns it to linear fade on and off. This should be enough for usable result - for stable change it makes smooth result. 3rd filter smoothes even shortest fluctuations, but each extra stage adds latency between light change and visible backlight reaction.
 
@@ -97,7 +97,11 @@ Further update may be forced with --update-conf or -u command line option.
 
 #### Permissions
 
-Place **90-backlight.rules** into **/etc/udev/rules.d** or **/lib/udev/rules.d** to enable write permissions for internal ACPI backend. Note, other tools like *acpilight* or *light* ship own permissions rules.
+Following steps are necessary for internal ACPI backend to work.
+- Place **90-backlight.rules** into **/etc/udev/rules.d** or **/lib/udev/rules.d** to enable write permissions for internal ACPI backend (requires reboot).
+- Make sure, that you are in video group (requires relogin).
+
+**Note:** other tools like *acpilight* or *light* may have it already done.
 
 ## Under hood
 
