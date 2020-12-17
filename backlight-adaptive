@@ -526,7 +526,6 @@ msg_debug "==========================="
 
                 # speedup calculations
                 imax = 255 ; omax = 65535
-                bl_cur = $( eval exec "$bl_get_cmd" )
                 bl_fm = imax * ($bl_max - bl_min)
                 bl_fd = ($max_color * omax)
 
@@ -541,15 +540,14 @@ msg_debug "==========================="
                         r = $bl_max / bl_min
                         d = $bl_max - bl_min
                         d_log_r = d / log(r)
-                        filt_init( filt, fade_len, to_log(bl_cur) )
+                        filt_init( filt, fade_len, to_log( $( eval exec "$bl_get_cmd" ) ) )
                 }
         }
 
         # start
         {
                 # map to backlight range
-                bl = bl_min + \$1 * bl_fm / bl_fd
-                bl = bl_limit( bl )
+                bl = bl_limit( bl_min + \$1 * bl_fm / bl_fd )
 
                 if (use_fade) {
                         p = bl_limit( from_log( filt_run( filt, to_log(bl) ) ) )
