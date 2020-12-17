@@ -377,10 +377,8 @@ msg_debug "bl_sh     : $bl_sh"
 msg_debug "bl_fmt    : $bl_fmt"
 
 # onetime tuning 
-# TODO: make it work with fade
 if $onetime; then
         msg_info "One-time mode"
-        fade_frames=0
 fi
 if [ "$fade_frames" != 0 -a "$bl_min" = 0 ]; then
         msg_warning "Minimum backlight can't be zero when fade is enabled. Set to 1 (of max $bl_max)"
@@ -457,13 +455,12 @@ msg_info "Smoothing duration: $fade_frames frames"
 msg_debug '=== Processing start ==='
 b='stdbuf -oL'
 b0='stdbuf -o0'
-frames=$($onetime && printf -- '-frames 1')
 pix_fmt=$( printf '\x11' | $byteorder_test | awk 'FNR==1 { print substr($2,4,1) ? "gray16le" : "gray16be" }' )
 ifps=$( awk_cmd 'sprintf ("v4l2-ctl --device '${vdev}' -p %i\n", 1 / '$delay') | getline; print $5' )
 ffmpeg_cmd='$b ffmpeg -v $([ $log_level_n -ge $debug ] && printf verbose || printf quiet) \
         -f v4l2 -s 1x1 -r "${ifps}" -i "${vdev}"  \
         -vf scale=1:1:flags=area+accurate_rnd+print_info,format=${pix_fmt} \
-        ${frames} -vcodec rawvideo -f rawvideo -r 1/${delay} -'
+        -vcodec rawvideo -f rawvideo -r 1/${delay} -'
 msg_debug "pix_fmt  : $pix_fmt"
 msg_debug "=== ffmpeg_cmd ============"
 msg_debug "${ffmpeg_cmd}"
@@ -518,7 +515,16 @@ msg_debug "==========================="
         function bl_limit(v) {
                 return v > $bl_max ? $bl_max : v < bl_min ? bl_min : v
         }
+        function check_same_input() {
+                if (int(bl) == int(p)) {
+                        if (onetime)
+                                exit
+                        else
+                                next
+                }
+        }
         BEGIN {
+                onetime = system( \"! $onetime\" )
                 stderr = \"/dev/stderr\"
                 bl_sh = \"exec ${bl_sh} 2>/dev/null\"
                 PROCINFO[bl_sh, \"NONFATAL\"]=1
@@ -553,9 +559,10 @@ msg_debug "==========================="
 
                 if (use_fade) {
                         p = bl_limit( from_log( filt_run( filt, to_log(bl) ) ) )
-                        if (bl == p) next
+                        print p, bl
+                        check_same_input()
                 } else {
-                        if (bl == p) next
+                        check_same_input()
                         p = bl
                 }
         }
