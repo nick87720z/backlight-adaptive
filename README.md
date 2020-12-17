@@ -1,5 +1,7 @@
 Adaptive backlight daemon, using camera as light sensor.
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 ## Features
 - smooth backlight adaptation
 - start with delay
