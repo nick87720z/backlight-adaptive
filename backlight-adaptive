@@ -356,14 +356,18 @@ for backend in $( print "$backends" | tr ',' ' ' ) ; do
                                 break
                         fi
                 fi
+                ctl_file="${acpi_dir}/brightness"
+                if ! [ -w "$ctl_file" ]; then
+                        fatal "Can't write to '$ctl_file'"
+                fi
                 
                 # Translate brightness limits to raw backlight range
-                read bl_hwmax < ${acpi_dir}/max_brightness 
+                read bl_hwmax < ${ctl_file} 
                 bl_max=$( awk_expr "$maxbright * $bl_hwmax / 100" )
                 bl_min=$( awk_expr "$minbright * $bl_hwmax / 100" )
 
-                bl_get_cmd="cat '${acpi_dir}/brightness'"
-                bl_sh="cat > '${acpi_dir}/brightness'"
+                bl_get_cmd="cat '${ctl_file}'"
+                bl_sh="cat > '${ctl_file}'"
                 bl_fmt='%u\n'
 
                 break
