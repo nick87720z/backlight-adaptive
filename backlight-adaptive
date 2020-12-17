@@ -31,6 +31,7 @@ max_color=35
 maxbright=100
 minbright=1
 fade_frames=0
+threshold=1
 
 acpi_dev=
 backends="${backends_all}"
@@ -92,7 +93,7 @@ print_options() {
         done
 }
 save_config() {
-        print_options watch_conf fade_frames delay log_level log_color max_color maxbright minbright acpi_dev backends backend_args | sort > "${config_file}"
+        print_options watch_conf fade_frames threshold delay log_level log_color max_color maxbright minbright acpi_dev backends backend_args | sort > "${config_file}"
 }
 
 # Search for either config file or writable config dir
@@ -116,6 +117,7 @@ then
                         delay       ) set_num delay "$v"; continue;;
                         skip        ) set_num skip "$v"; continue;;
                         fade_frames ) set_int_list fade_frames "$v"; continue;;
+                        threshold   ) set_int threshold "$v"; continue;;
                         log_level   ) log_level="$v";    continue;;
                         log_color   ) set_bool log_color "$v"; continue;;
                         maxbright   ) set_num maxbright "$v"; continue;;
@@ -158,6 +160,7 @@ show_help() {
         h_grp "Reaction options:"
         h_opt "-d, --delay     FLOAT       Snapshots delay (seconds)"
         h_opt "-s, --smooth    INT,INT...  Frames number to smooth (0 to disable)"
+        h_opt "-T, --threshold FLOAT       Minimum difference for repeats (%)"
 
         h_grp "Configuration options:"
         h_opt "-w, --watchconf BOOLEAN     Auto-restart when configuration file is changed"
@@ -187,6 +190,7 @@ while [ $# -gt 0 ]; do
         '-C' | '--max-color' ) set_num max_color "$2";     shift ;;
         '--calibrate' ) ctl_action=cal ;;
         '-s' | '--smooth' ) set_int_list fade_frames "$2"; shift ;;
+        '-T' | '--threshold') set_int threshold "$2";      shift ;;
         '-a' | '--acpi-dev' ) acpi_dev="$2";               shift ;;
         '-v' | '--video-dev' ) vdev="$2";                  shift ;;
         '-b' | '--backends' ) backends="$2";               shift ;;
@@ -529,6 +533,7 @@ msg_debug "==========================="
                 errno_prev = 0
                 errno_num = 0
                 bl_min = $bl_min
+                threshold = $threshold / 100 + 1
 
                 # speedup calculations
 
@@ -559,7 +564,6 @@ msg_debug "==========================="
 
                 if (use_fade) {
                         p = bl_limit( from_log( filt_run( filt, to_log(bl) ) ) )
-                        threshold = 1.01
                         if ( (bl > p ? bl/p : p/bl) < threshold )
                                 skip_repeat()
                 } else {
