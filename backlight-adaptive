@@ -516,7 +516,7 @@ msg_debug "==========================="
                 return v > $bl_max ? $bl_max : v < bl_min ? bl_min : v
         }
         function check_same_input() {
-                if (int(bl) == int(p)) {
+                if (bl_old == p) {
                         if (onetime)
                                 exit
                         else
@@ -533,11 +533,13 @@ msg_debug "==========================="
                 bl_min = $bl_min
 
                 # speedup calculations
+
                 imax = 255 ; omax = 65535
                 bl_fm = imax * ($bl_max - bl_min)
                 bl_fd = ($max_color * omax)
 
                 # init LPF
+
                 split( \"${fade_frames}\", fade_len, \",\" )
                 use_fade = 0
                 for (j in fade_len) if (fade_len[j] > 0) {
@@ -559,11 +561,11 @@ msg_debug "==========================="
 
                 if (use_fade) {
                         p = bl_limit( from_log( filt_run( filt, to_log(bl) ) ) )
-                        print p, bl
                         check_same_input()
+                        bl_old = p
                 } else {
                         check_same_input()
-                        p = bl
+                        bl_old = p = bl
                 }
         }
 
