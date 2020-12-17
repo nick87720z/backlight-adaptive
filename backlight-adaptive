@@ -21,10 +21,9 @@ backends_all=internal,light,xbacklight
 
 # Default parameters
 
-watch_conf=true
 delay=0.1
 skip=0
-grab=true
+onetime=false
 log_level=info
 log_color=false
 
@@ -37,6 +36,7 @@ acpi_dev=
 backends="${backends_all}"
 backend_args=
 
+watch_conf=true
 ctl_action=
 
 for vdev in /dev/video* ; do break; done
@@ -92,7 +92,7 @@ print_options() {
         done
 }
 save_config() {
-        print_options watch_conf fade_frames delay grab log_level log_color max_color maxbright minbright acpi_dev backends backend_args | sort > "${config_file}"
+        print_options watch_conf fade_frames delay log_level log_color max_color maxbright minbright acpi_dev backends backend_args | sort > "${config_file}"
 }
 
 # Search for either config file or writable config dir
@@ -116,7 +116,6 @@ then
                         delay       ) set_num delay "$v"; continue;;
                         skip        ) set_num skip "$v"; continue;;
                         fade_frames ) set_int_list fade_frames "$v"; continue;;
-                        grab        ) grab="$v";         continue;;
                         log_level   ) log_level="$v";    continue;;
                         log_color   ) set_bool log_color "$v"; continue;;
                         maxbright   ) set_num maxbright "$v"; continue;;
@@ -143,7 +142,7 @@ show_help() {
 
         h_grp "Capture options:"
         h_opt "-v, --video-dev DEVICE      Video device used as sensor (e.g. /dev/video0)"
-        h_opt "-g, --no-grab               Don't keep camera busy all time"
+        h_opt "-1, --onetime               Make single adjustment and quit"
         h_opt "-S, --skip      INTEGER     Frames number to skip at capture start"
 
         h_grp "Backend options:"
@@ -180,7 +179,7 @@ while [ $# -gt 0 ]; do
         case $1 in
         '-d' | '--delay' ) set_num delay "$2";             shift ;;
         '-S' | '--skip'  ) set_num skip "$2";              shift ;;
-        '-g' | '--no-grab' ) grab=false ;;
+        '-1' | '--onetime' ) onetime=true ;;
         '-l' | '--log' ) log_level="$2";                   shift ;;
         '-c' | '--color'   ) set_bool log_color "$2";      shift ;;
         '-M' | '--bl-max' ) set_num maxbright "$2";        shift ;;
@@ -371,14 +370,22 @@ done
 if [ ! "${backend}" ]; then
         fatal "No working backends found"
 fi
-if [ "$fade_frames" != 0 -a "$bl_min" = 0 ]; then
-        msg_warning "Minimum backlight can't be zero when fade is enabled. Set to 1 (of max $bl_max)"
-        bl_min=1
-fi
+
 msg_info "Using backend ${bold}$(col green)${backend}"
 msg_debug "bl_get_cmd: $bl_get_cmd"
 msg_debug "bl_sh     : $bl_sh"
 msg_debug "bl_fmt    : $bl_fmt"
+
+# onetime tuning 
+# TODO: make it work with fade
+if $onetime; then
+        msg_info "One-time mode"
+        fade_frames=0
+fi
+if [ "$fade_frames" != 0 -a "$bl_min" = 0 ]; then
+        msg_warning "Minimum backlight can't be zero when fade is enabled. Set to 1 (of max $bl_max)"
+        bl_min=1
+fi
 
 # Setup temporary dir
 
@@ -450,7 +457,7 @@ msg_info "Smoothing duration: $fade_frames frames"
 msg_debug '=== Processing start ==='
 b='stdbuf -oL'
 b0='stdbuf -o0'
-frames=$($grab || printf -- '-frames 1')
+frames=$($onetime && printf -- '-frames 1')
 pix_fmt=$( printf '\x11' | $byteorder_test | awk 'FNR==1 { print substr($2,4,1) ? "gray16le" : "gray16be" }' )
 ifps=$( awk_cmd 'sprintf ("v4l2-ctl --device '${vdev}' -p %i\n", 1 / '$delay') | getline; print $5' )
 ffmpeg_cmd='$b ffmpeg -v $([ $log_level_n -ge $debug ] && printf verbose || printf quiet) \
@@ -461,13 +468,8 @@ msg_debug "pix_fmt  : $pix_fmt"
 msg_debug "=== ffmpeg_cmd ============"
 msg_debug "${ffmpeg_cmd}"
 msg_debug "==========================="
-( { 
-        if $grab; then
-                eval exec "${ffmpeg_cmd}"
-        else while :; do
-                sleep $delay | eval exec "${ffmpeg_cmd}"
-        done; fi
-  } </dev/null  \
+(
+  eval exec "${ffmpeg_cmd}" </dev/null  \
   | if [ $skip -eq 0 ]; then exec cat
     else
         exec $b0 tail -c+$(( skip + 1 ))
@@ -585,6 +587,9 @@ msg_debug "==========================="
 ) & procpid=$!
 
 state=run
+if $onetime; then
+        state=onetime
+fi
 
 # Monitor config changes
 if $watch_conf && [ -n "$config_file" ]; then {

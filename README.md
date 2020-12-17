@@ -5,6 +5,7 @@ Adaptive backlight daemon, using camera as light sensor.
 ## Features
 - smooth backlight adaptation
 - start with delay
+- one-time mode
 - auto-restart on configuration file change
 - set maximum light to current by SIGUSR2 signal
 - effective: up to 30fps for camera input without notable performance losses
@@ -47,6 +48,11 @@ $ backlight-adaptive
 Toggle running
 ```
 $ backlight-adaptive -t
+```
+
+Match backlight once to current light level and quit.
+```
+$ backlight-adaptive -1
 ```
 
 Update maximum light level to current
