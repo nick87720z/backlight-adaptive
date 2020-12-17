@@ -515,13 +515,11 @@ msg_debug "==========================="
         function bl_limit(v) {
                 return v > $bl_max ? $bl_max : v < bl_min ? bl_min : v
         }
-        function check_same_input() {
-                if (bl_old == p) {
-                        if (onetime)
-                                exit
-                        else
-                                next
-                }
+        function skip_repeat() {
+                if (onetime)
+                        exit
+                else
+                        next
         }
         BEGIN {
                 onetime = system( \"! $onetime\" )
@@ -561,13 +559,14 @@ msg_debug "==========================="
 
                 if (use_fade) {
                         p = bl_limit( from_log( filt_run( filt, to_log(bl) ) ) )
-                        check_same_input()
-                        bl_old = p
+                        threshold = 1.01
+                        if ( (bl > p ? bl/p : p/bl) < threshold )
+                                skip_repeat()
                 } else {
-                        p = bl
-                        check_same_input()
-                        bl_old = p 
+                        if ( b_old == p )
+                                skip_repeat()
                 }
+                b_old = p
         }
 
         $(( log_level_n >= debug )) {
