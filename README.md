@@ -95,15 +95,7 @@ Further update may be forced with --update-conf or -u command line option.
 
 #### Permissions
 
-Internal ACPI backend needs write permissions for some files in `/sys/clas/backlight/*`. Some tools like *acpilight* or *light* ship permissions rules. Otherwise you will need to create own rule.
-
-To create rule, create file `/etc/udev/rules.d/90-backlight.rules` with following content (file name could be changed):
-
-```
-SUBSYSTEM=="backlight", ACTION=="add", \
-    RUN+="/bin/chgrp video /sys/class/backlight/%k/brightness", \
-    RUN+="/bin/chmod g+w /sys/class/backlight/%k/brightness"
-```
+Place **90-backlight.rules** into **/etc/udev/rules.d** or **/lib/udev/rules.d** to enable write permissions for internal ACPI backend. Note, other tools like *acpilight* or *light* ship own permissions rules.
 
 ## Under hood
 
