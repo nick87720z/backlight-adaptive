@@ -564,8 +564,9 @@ msg_debug "==========================="
                         check_same_input()
                         bl_old = p
                 } else {
+                        p = bl
                         check_same_input()
-                        bl_old = p = bl
+                        bl_old = p 
                 }
         }
 
