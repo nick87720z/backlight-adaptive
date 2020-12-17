@@ -93,6 +93,18 @@ Further update may be forced with --update-conf or -u command line option.
 - SIGUSR1 - reload configuration
 - SIGUSR2 - update maximum light level to current
 
+#### Permissions
+
+Internal ACPI backend needs write permissions for some files in `/sys/clas/backlight/*`. Some tools like *acpilight* or *light* ship permissions rules. Otherwise you will need to create own rule.
+
+To create rule, create file `/etc/udev/rules.d/90-backlight.rules` with following content (file name could be changed):
+
+```
+SUBSYSTEM=="backlight", ACTION=="add", \
+    RUN+="/bin/chgrp video /sys/class/backlight/%k/brightness", \
+    RUN+="/bin/chmod g+w /sys/class/backlight/%k/brightness"
+```
+
 ## Under hood
 
 Shell script only makes configuration, all dirty job is done by persistant ffmpeg-based pipeline.
