@@ -117,7 +117,7 @@ then
                         delay       ) set_num delay "$v"; continue;;
                         skip        ) set_num skip "$v"; continue;;
                         fade_frames ) set_int_list fade_frames "$v"; continue;;
-                        threshold   ) set_int threshold "$v"; continue;;
+                        threshold   ) set_num threshold "$v"; continue;;
                         log_level   ) log_level="$v";    continue;;
                         log_color   ) set_bool log_color "$v"; continue;;
                         maxbright   ) set_num maxbright "$v"; continue;;
