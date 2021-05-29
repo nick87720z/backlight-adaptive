@@ -220,7 +220,10 @@ fatal() {
 
 # Find config file or place to save it
 for config_dir in "${XDG_CONFIG_PATH}" "$HOME/.config" '/etc' ; do
-        [ -f "${config_dir}/${progname}" -o \( -d "${config_dir}" -a -w "${config_dir}" \) ] && break ||:
+        { [ -f "${config_dir}/${progname}" ] || {
+                [ -d "${config_dir}" ] && \
+                [ -w "${config_dir}" ]
+        } } && break ||:
         config_dir=
 done
 
@@ -378,7 +381,7 @@ for backend in $( print "$backends" | tr ',' ' ' ) ; do
                         acpi_dir="${acpi_dir}/${acpi_dev}"
                 else
                         for acpi_dir in "${acpi_dir}"/* ; do break; done
-                        if ! [ -d "${acpi_dir}" -a -f "${acpi_dir}/brightness" ]; then
+                        if ! { [ -d "${acpi_dir}" ] && [ -f "${acpi_dir}/brightness" ]; }; then
                                 msg_error 'No ACPI backlight devices found'
                                 break
                         fi
@@ -415,7 +418,7 @@ msg_debug "bl_fmt    : $bl_fmt"
 if $onetime; then
         msg_info 'One-time mode'
 fi
-if [ "$fade_frames" != 0 -a "$bl_min" = 0 ]; then
+if [ "$fade_frames" != 0 ] && [ "$bl_min" = 0 ]; then
         msg_warning "Minimum backlight can't be zero when fade is enabled. Set to 1 (of max $bl_max)"
         bl_min=1
 fi
@@ -424,7 +427,7 @@ fi
 
 for path in '/var/run' "${XDG_RUNTIME_DIR}" '/tmp' "$HOME/.cache"; do
         # Check base path
-        [ "${path}" -a -d "${path}" -a -w "${path}" ] || continue
+        [ "${path}" ] && [ -d "${path}" ] && [ -w "${path}" ] || continue
         tmpdir="${path}/${progname}"
         pidfile="$tmpdir/pid"
         break
@@ -446,7 +449,7 @@ fi
 
 if [ ! -e "${tmpdir}" ]; then
         mkdir -p "${tmpdir}"
-elif ! [ -d "${path}" -a -w "${path}" ]; then
+elif ! { [ -d "${path}" ] && [ -w "${path}" ]; }; then
         fatal "$tmpdir: Not a directory"
 elif [ -f "$pidfile" ]; then
         # We are singleton
