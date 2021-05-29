@@ -40,10 +40,12 @@ backend_args=
 watch_conf=true
 ctl_action=
 
+# first video input for default
 for vdev in /dev/video* ; do break; done
 
-# helpers
+# Helpers
 
+# args: value
 isnum() {
         for n in "$@"; do case ${n#[+-]} in
         ''|*[!0-9.]* | '.' | *.*.*) return 1
@@ -62,21 +64,25 @@ h_grp() {
         print "$1"
 }
 
+# args: name, value
 set_num() {
         if isnum "$2"; then
                 eval "$1='$2'"
         fi
 }
+# args: name, value
 set_bool() {
         case "$2" in true | false )
                 eval "$1='$2'"
         esac
 }
+# args: name, value
 set_int_list() {
         case "$2" in [0-9,]* )
                 eval "$1='$2'"
         esac
 }
+# args: start, names
 set_enum() {
         i="$1"; shift
         for name in "$@"; do
@@ -85,6 +91,7 @@ set_enum() {
         done; unset i name
 }
 
+# args: cmdname
 cmd_avail() {
         type "$1" >/dev/null 2>&1
         return $?
@@ -92,6 +99,7 @@ cmd_avail() {
 
 # Config - find & load or create new
 
+# args: option_name,...
 print_options() {
         while [ $# -gt 0 ]; do
                 eval "print $1=\${$1}"
@@ -221,10 +229,10 @@ if ! "$log_color"; then
         tput() { :; }
 fi
 
-# create color table
+# colors table
 set_enum 0 black red green yellow blue pink cyan gray
 
-# color set helper
+# color switch helper
 col() {
         if isnum "$1"; then
                 tput setaf "$1"
@@ -239,21 +247,23 @@ col() {
                 fi
         fi
 }
-# other control strings
+# other control sequences
 bold="$(tput bold)"
 sgr0="$(tput sgr0)"
 
 # Loging features
-set_enum 0 error warning info debug
 
+set_enum 0 error warning info debug
 eval "log_level_n=\${$log_level}"
 
+# args: color, text
 msg_color() {
         local c="$1"
         shift
         print "$(col $c)$*$sgr0"
 }
-msg_debug()   { [ $log_level_n -ge $debug   ] && print "$*${sgr0}" ||:; }
+# args: text
+msg_debug()   { [ $log_level_n -ge $debug   ] && print "$*${sgr0}"     ||:; }
 msg_info()    { [ $log_level_n -ge $info    ] && msg_color blue   "$*" ||:; }
 msg_warning() { [ $log_level_n -ge $warning ] && msg_color yellow "$*" ||:; }
 msg_error()   { [ $log_level_n -ge $error   ] && msg_color red    "$*" ||:; }
@@ -304,7 +314,8 @@ msg_info "Found hex printer: ${bold}$(col green)${hextool}"
 msg_debug "hexprinter: ${hexprinter}"
 msg_debug "byteorder_test: ${byteorder_test}"
 
-# config watch (optional)
+# Config watch (optional)
+
 if $watch_conf && ! cmd_avail inotifywait; then
         watch_conf=false
         msg_warning 'Command "inotifywait" is not found. Configuration watch will not work.'
@@ -401,16 +412,20 @@ for path in '/var/run' "${XDG_RUNTIME_DIR}" '/tmp' "$HOME/.cache"; do
         pidfile="$tmpdir/pid"
         break
 done
-# No place for tmpdir
+
+# no place for tmpdir
 if [ ! "${tmpdir}" ]; then
         fatal "Can't find place for temporary directory"
 fi
 msg_info "Temporary directory: ${bold}$(col green)${tmpdir}"
 
 # Cancel if pretending
+
 if [ "x$ctl_action" = "xpretend" ]; then
         exit
 fi
+
+# Check runing instance
 
 if [ ! -e "${tmpdir}" ]; then
         mkdir -p "${tmpdir}"
@@ -612,7 +627,7 @@ if $onetime; then
         state=onetime
 fi
 
-# Monitor config changes
+# setup config change monitor
 if $watch_conf && [ -n "$config_file" ]; then {
         inotifywait -q -e modify "$config_file"
         msg_info 'Configuration changed'
@@ -633,7 +648,7 @@ fi
 while :; do
         case $state in
         'int'    )
-                msg_info Interrupted
+                msg_info 'Interrupted'
                 print 0 > "$pidfile"
                 exit ;;
         'restart')
