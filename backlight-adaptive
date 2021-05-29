@@ -469,6 +469,10 @@ input_max() {
         kill -- -$procpid
 }
 
+unpid() {
+        print 0 > "$pidfile"
+}
+
 trap 'quit'      INT TERM QUIT HUP
 trap 'restart'   USR1
 trap 'input_max' USR2
@@ -648,12 +652,10 @@ fi
 while :; do
         case $state in
         'int'    )
-                msg_info 'Interrupted'
-                print 0 > "$pidfile"
-                exit ;;
+                msg_info 'Interrupted' ;;
         'restart')
                 msg_info 'Restart...'
-                print 0 > "$pidfile"
+                unpid
                 eval exec "$0 $startup_args" ;;
         'input_max' )
                 frames=$( awk_expr "($delay >= 1 ? 1 : int(1 / $delay)) + 1" )
@@ -664,14 +666,11 @@ while :; do
                 state=restart
                 continue ;;
         'run'    )
-                msg_warning 'Pipeline terminated on its own'
-                print 0 > "$pidfile"
-                exit ;;
+                msg_warning 'Pipeline terminated on its own' ;;
         'onetime' )
-                msg_info 'Onetime adjustment complete'
-                print 0 > "$pidfile"
-                exit ;;
+                msg_info 'Onetime adjustment complete' ;;
         esac
+        unpid
         break
 done
 
