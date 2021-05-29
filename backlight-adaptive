@@ -45,6 +45,47 @@ for vdev in /dev/video* ; do break; done
 
 # Helpers
 
+show_help() {
+        print "Usage: $(basename $0) [options] -- [backend options]"
+        h_grp "Adapt backlight to ambient light using web camera as light sensor."
+
+        h_grp "Capture options:"
+        h_opt "-v, --video-dev DEVICE      Video device used as sensor (e.g. /dev/video0)"
+        h_opt "-1, --onetime               Make single adjustment and quit"
+        h_opt "-S, --skip      INTEGER     Frames number to skip at capture start"
+
+        h_grp "Backend options:"
+        h_opt "-a, --acpi-dev  NAME        ACPI device to be controlled"
+        h_opt "-b, --backends  STR,STR...  Comma-separated list of backlight control backends"
+        h_opt "-B, --list-backends         List available backends"
+
+        h_grp "Intensity options:"
+        h_opt "-M, --bl-max    FLOAT       Maximum backlight level (%)"
+        h_opt "-m, --bl-min    FLOAT       Minimum backlight level (%)"
+        h_opt "-C, --max-color INTEGER     Color value for full backlight level"
+
+        h_grp "Reaction options:"
+        h_opt "-d, --delay     FLOAT       Snapshots delay (seconds)"
+        h_opt "-s, --smooth    INT,INT...  Frames number to smooth (0 to disable)"
+        h_opt "-T, --threshold FLOAT       Minimum difference for repeats (%)"
+
+        h_grp "Configuration options:"
+        h_opt "-w, --watchconf BOOLEAN     Auto-restart when configuration file is changed"
+        h_opt "-u, --update-conf           Update configuration with command line options and new options"
+
+        h_grp "Output options:"
+        h_opt "-l, --log       STRING      Log verbosity. One of: error, warning, info, debug"
+        h_opt "-c, --color     BOOLEAN     Colorize output"
+
+        h_grp "Instance control commands:"
+        h_opt "-t, --toggle                Stop runing instance or run as new"
+        h_opt "    --calibrate             Update light level for full backlight"
+        h_opt "-p, --pretend               Print running parameters without actual run"
+
+        h_grp "Help:"
+        h_opt "-h, --help                  Show this help"
+}
+
 # args: value
 isnum() {
         for n in "$@"; do case ${n#[+-]} in
@@ -90,14 +131,29 @@ set_enum() {
                 i=$(( i+1 ))
         done; unset i name
 }
-
 # args: cmdname
 cmd_avail() {
         type "$1" >/dev/null 2>&1
         return $?
 }
+# args: PID
+savepid() {
+        print "$1" > "$pidfile"
+}
 
-# Config - find & load or create new
+# event handlers: no args, require initialized procpid
+quit() {
+        state=int
+        kill -- -$procpid
+}
+restart() {
+        state=restart
+        kill -- -$procpid
+}
+input_max() {
+        state=input_max
+        kill -- -$procpid
+}
 
 # args: option_name,...
 print_options() {
@@ -110,13 +166,65 @@ save_config() {
         print_options watch_conf fade_frames threshold delay log_level log_color max_color maxbright minbright acpi_dev backends backend_args | sort > "${config_file}"
 }
 
-# Search for either config file or writable config dir
+# color helpers
+color_init() {
+        if "$log_color" && ! cmd_avail tput; then
+                log_color=false
+        fi
+        if ! "$log_color"; then
+                tput() { :; }
+        fi
+        set_enum 0 black red green yellow blue pink cyan gray
+        bold="$(tput bold)"
+        sgr0="$(tput sgr0)"
+}
+# args: fgcolor, [bgcolor]
+col() {
+        if isnum "$1"; then
+                tput setaf "$1"
+        else
+                eval "tput setaf \${$1}"
+        fi
+        if [ $# -gt 2 ]; then
+                if isnum "$2"; then
+                        tput setab "$2"
+                else
+                        eval "tput setab \${$2}"
+                fi
+        fi
+}
+
+# loging features
+msg_init() {
+        set_enum 0 error warning info debug
+        eval "log_level_n=\${$log_level}"
+}
+# args: color, text
+msg_color() {
+        local c="$1"
+        shift
+        print "$(col $c)$*$sgr0"
+}
+# args: text
+msg_debug()   { [ $log_level_n -ge $debug   ] && print "$*${sgr0}"     ||:; }
+msg_info()    { [ $log_level_n -ge $info    ] && msg_color blue   "$*" ||:; }
+msg_warning() { [ $log_level_n -ge $warning ] && msg_color yellow "$*" ||:; }
+msg_error()   { [ $log_level_n -ge $error   ] && msg_color red    "$*" ||:; }
+
+fatal() {
+        msg_error "$@"
+        exit 1
+}
+
+##### START #####
+
+# Find config file or place to save it
 for config_dir in "${XDG_CONFIG_PATH}" "$HOME/.config" '/etc' ; do
         [ -f "${config_dir}/${progname}" -o \( -d "${config_dir}" -a -w "${config_dir}" \) ] && break ||:
         config_dir=
 done
 
-# Either read existing or create new config
+# Read existing config or create new
 if [ -n "${config_dir}" ]
 then
         config_file="${config_dir}/${progname}"
@@ -151,47 +259,6 @@ fi
 
 # Arguments loading
 
-show_help() {
-        print "Usage: $(basename $0) [options] -- [backend options]"
-        h_grp "Adapt backlight to ambient light using web camera as light sensor."
-
-        h_grp "Capture options:"
-        h_opt "-v, --video-dev DEVICE      Video device used as sensor (e.g. /dev/video0)"
-        h_opt "-1, --onetime               Make single adjustment and quit"
-        h_opt "-S, --skip      INTEGER     Frames number to skip at capture start"
-
-        h_grp "Backend options:"
-        h_opt "-a, --acpi-dev  NAME        ACPI device to be controlled"
-        h_opt "-b, --backends  STR,STR...  Comma-separated list of backlight control backends"
-        h_opt "-B, --list-backends         List available backends"
-
-        h_grp "Intensity options:"
-        h_opt "-M, --bl-max    FLOAT       Maximum backlight level (%)"
-        h_opt "-m, --bl-min    FLOAT       Minimum backlight level (%)"
-        h_opt "-C, --max-color INTEGER     Color value for full backlight level"
-
-        h_grp "Reaction options:"
-        h_opt "-d, --delay     FLOAT       Snapshots delay (seconds)"
-        h_opt "-s, --smooth    INT,INT...  Frames number to smooth (0 to disable)"
-        h_opt "-T, --threshold FLOAT       Minimum difference for repeats (%)"
-
-        h_grp "Configuration options:"
-        h_opt "-w, --watchconf BOOLEAN     Auto-restart when configuration file is changed"
-        h_opt "-u, --update-conf           Update configuration with command line options and new options"
-
-        h_grp "Output options:"
-        h_opt "-l, --log       STRING      Log verbosity. One of: error, warning, info, debug"
-        h_opt "-c, --color     BOOLEAN     Colorize output"
-
-        h_grp "Instance control commands:"
-        h_opt "-t, --toggle                Stop runing instance or run as new"
-        h_opt "    --calibrate             Update light level for full backlight"
-        h_opt "-p, --pretend               Print running parameters without actual run"
-
-        h_grp "Help:"
-        h_opt "-h, --help                  Show this help"
-}
-
 while [ $# -gt 0 ]; do
         case "$1" in
         '-d' | '--delay'         ) set_num delay "$2";            shift ;;
@@ -220,59 +287,8 @@ while [ $# -gt 0 ]; do
         shift
 done
 
-# Configure terminal font controls
-
-if "$log_color" && ! cmd_avail tput; then
-        log_color=false
-fi
-if ! "$log_color"; then
-        tput() { :; }
-fi
-
-# colors table
-set_enum 0 black red green yellow blue pink cyan gray
-
-# color switch helper
-col() {
-        if isnum "$1"; then
-                tput setaf "$1"
-        else
-                eval "tput setaf \${$1}"
-        fi
-        if [ $# -gt 2 ]; then
-                if isnum "$2"; then
-                        tput setab "$2"
-                else
-                        eval "tput setab \${$2}"
-                fi
-        fi
-}
-# other control sequences
-bold="$(tput bold)"
-sgr0="$(tput sgr0)"
-
-# Loging features
-
-set_enum 0 error warning info debug
-eval "log_level_n=\${$log_level}"
-
-# args: color, text
-msg_color() {
-        local c="$1"
-        shift
-        print "$(col $c)$*$sgr0"
-}
-# args: text
-msg_debug()   { [ $log_level_n -ge $debug   ] && print "$*${sgr0}"     ||:; }
-msg_info()    { [ $log_level_n -ge $info    ] && msg_color blue   "$*" ||:; }
-msg_warning() { [ $log_level_n -ge $warning ] && msg_color yellow "$*" ||:; }
-msg_error()   { [ $log_level_n -ge $error   ] && msg_color red    "$*" ||:; }
-
-fatal() {
-        msg_error "$@"
-        exit 1
-}
-
+color_init
+msg_init
 msg_info "Config file: ${bold}$(col green)${config_file}"
 
 # Depepdency check
@@ -450,28 +466,9 @@ elif [ -f "$pidfile" ]; then
         fi
 fi
 
-print "$$" > "$pidfile"
+savepid "$$"
 
 # Event loop setup
-
-quit() {
-        state=int
-        kill -- -$procpid
-}
-
-restart() {
-        state=restart
-        kill -- -$procpid
-}
-
-input_max() {
-        state=input_max
-        kill -- -$procpid
-}
-
-unpid() {
-        print 0 > "$pidfile"
-}
 
 trap 'quit'      INT TERM QUIT HUP
 trap 'restart'   USR1
@@ -655,7 +652,7 @@ while :; do
                 msg_info 'Interrupted' ;;
         'restart')
                 msg_info 'Restart...'
-                unpid
+                savepid 0
                 eval exec "$0 $startup_args" ;;
         'input_max' )
                 frames=$( awk_expr "($delay >= 1 ? 1 : int(1 / $delay)) + 1" )
@@ -670,7 +667,7 @@ while :; do
         'onetime' )
                 msg_info 'Onetime adjustment complete' ;;
         esac
-        unpid
+        savepid 0
         break
 done
 
