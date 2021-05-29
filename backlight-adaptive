@@ -636,7 +636,8 @@ fi
 while :; do
         case $state in
         'int'    )
-                msg_info Interrupted; 
+                msg_info Interrupted
+                print 0 > "$pidfile"
                 exit ;;
         'restart')
                 msg_info 'Restart...'
@@ -651,7 +652,8 @@ while :; do
                 state=restart
                 continue ;;
         'run'    )
-                msg_warning 'Pipeline terminated on its own'; 
+                msg_warning 'Pipeline terminated on its own'
+                print 0 > "$pidfile"
                 exit ;;
         esac
         break
