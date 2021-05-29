@@ -652,6 +652,10 @@ while :; do
                 msg_warning 'Pipeline terminated on its own'
                 print 0 > "$pidfile"
                 exit ;;
+        'onetime' )
+                msg_info 'Onetime adjustment complete'
+                print 0 > "$pidfile"
+                exit ;;
         esac
         break
 done
