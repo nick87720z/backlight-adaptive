@@ -173,6 +173,7 @@ show_help() {
         h_grp "Instance control commands:"
         h_opt "-t, --toggle                Stop runing instance or run as new"
         h_opt "    --calibrate             Update light level for full backlight"
+        h_opt "-p, --pretend               Print running parameters without actual run"
 
         h_grp "Help:"
         h_opt "-h, --help                  Show this help"
@@ -199,6 +200,7 @@ while [ $# -gt 0 ]; do
         '-t' | '--toggle' ) ctl_action=toggle;;
         '-w' | '--watchconf' ) set_bool watch_conf "$2";   shift ;;
         '-u' | '--update-conf' ) save_config ;;
+        '-p' | '--pretend' ) ctl_action=pretend ;;
         '-h' | '--help' ) show_help
                 exit ;;
         '--' ) backend_args="$*"
@@ -407,6 +409,11 @@ if [ ! "${tmpdir}" ]; then
         fatal "Can't find place for temporary directory"
 fi
 msg_info "Temporary directory: ${bold}$(col green)${tmpdir}"
+
+# Cancel if pretending
+if [ "x$ctl_action" = "xpretend" ]; then
+        exit
+fi
 
 if [ ! -e "${tmpdir}" ]; then
         mkdir -p "${tmpdir}"
