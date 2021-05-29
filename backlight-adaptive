@@ -423,7 +423,7 @@ elif [ -f "$pidfile" ]; then
         # We are singleton
 
         read pid < $pidfile
-        if [ "$pid" -a "$(ps $pid | grep $pid)" ] ; then
+        if [ "$pid" -a "$pid" != 0 -a "$(ps -o pid= $pid | grep $pid)" ] ; then
                 case $ctl_action in
 
                 toggle) msg_info "Terminating instance $pid"
@@ -639,7 +639,8 @@ while :; do
                 msg_info Interrupted; 
                 exit ;;
         'restart')
-                msg_info 'Restart...'; rm $pidfile; 
+                msg_info 'Restart...'
+                print 0 > "$pidfile"
                 eval exec "$0 $startup_args" ;;
         'input_max' )
                 frames=$( awk_expr "($delay >= 1 ? 1 : int(1 / $delay)) + 1" )
