@@ -227,13 +227,13 @@ col() {
         if isnum $1; then
                 tput setaf $1
         else
-                eval exec tput setaf \$$1
+                eval tput setaf \$$1
         fi
         if [ $# -gt 2 ]; then
                 if isnum $2; then
                         tput setab $2
                 else
-                        eval exec tput setab \$$2
+                        eval tput setab \$$2
                 fi
         fi
 }
