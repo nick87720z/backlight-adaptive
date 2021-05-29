@@ -420,7 +420,7 @@ elif [ -f "$pidfile" ]; then
         # We are singleton
 
         read pid < "$pidfile"
-        if [ "$pid" -a "$pid" != 0 -a "$(ps -o pid= $pid | grep $pid)" ] ; then
+        if [ $((pid)) -ne 0 ] && [ "$(ps -o pid= $pid | grep $pid)" ] ; then
                 case $ctl_action in
 
                 toggle) msg_info "Terminating instance $pid"
