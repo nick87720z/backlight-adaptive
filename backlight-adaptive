@@ -78,6 +78,13 @@ set_int_list() {
                 eval "$1='$2'"
         esac
 }
+set_enum() {
+        i="$1"; shift
+        for name in "$@"; do
+                eval "$name=$i"
+                i=$(( i+1 ))
+        done; unset i name
+}
 
 cmd_avail() {
         type "$1" >/dev/null 2>&1
@@ -217,10 +224,8 @@ if ! "$log_color"; then
 fi
 
 # create color table
-i=0; for c in black red green yellow blue pink cyan gray; do
-        eval "$c=$i"
-        i=$(( i+1 ))
-done; unset i c
+set_enum 0 black red green yellow blue pink cyan gray
+
 # color set helper
 col() {
         if isnum "$1"; then
@@ -241,11 +246,8 @@ bold="$(tput bold)"
 sgr0="$(tput sgr0)"
 
 # Loging features
+set_enum 0 error warning info debug
 
-i=0; for l in error warning info debug; do
-        eval "$l=$i"
-        i=$(( i+1 ))
-done; unset i l
 eval "log_level_n=\${$log_level}"
 
 msg_color() {
