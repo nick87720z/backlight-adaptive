@@ -60,7 +60,6 @@ h_opt() { print "  $1"; }
 h_grp() {
         newline
         print "$1"
-        newline
 }
 
 set_num() {
@@ -146,8 +145,7 @@ fi
 
 show_help() {
         print "Usage: $(basename $0) [options] -- [backend options]"
-        newline
-        print "Adapt backlight to ambient light using web camera as light sensor."
+        h_grp "Adapt backlight to ambient light using web camera as light sensor."
 
         h_grp "Capture options:"
         h_opt "-v, --video-dev DEVICE      Video device used as sensor (e.g. /dev/video0)"
