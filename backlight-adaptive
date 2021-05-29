@@ -392,7 +392,7 @@ for backend in $( print "$backends" | tr ',' ' ' ) ; do
                 fi
                 
                 # Translate brightness limits to raw backlight range
-                read bl_hwmax < ${ctl_file} 
+                read bl_hwmax < "${acpi_dir}/max_brightness"
                 bl_max=$( awk_expr "$maxbright * $bl_hwmax / 100" )
                 bl_min=$( awk_expr "$minbright * $bl_hwmax / 100" )
 
