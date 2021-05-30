@@ -505,13 +505,13 @@ msg_debug "==========================="
   | $b awk \
         -v bl_fmt="${bl_fmt}" "
         function to_log(x) {
-                return bl_min + log(x / bl_min) * d_log_r
+                return $bl_min + log(x / $bl_min) * d_log_r
         }
         function from_log(x) {
-                return bl_min * r^((x - bl_min) / d)
+                return $bl_min * r^((x - $bl_min) / d)
         }
         function bl_limit(v) {
-                return v > $bl_max ? $bl_max : v < bl_min ? bl_min : v
+                return v > $bl_max ? $bl_max : v < $bl_min ? $bl_min : v
         }"'
         function filt_init(fa, len, v)
         {
