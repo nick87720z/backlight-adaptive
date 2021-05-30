@@ -574,7 +574,7 @@ msg_debug "==========================="
                 use_fade = 0
                 for (j in fade_len)
                 {
-                        if (fade_len[j] < 1) {
+                        if (fade_len[j] < 2) {
                                 delete fade_len[j]
                                 continue
                         }
