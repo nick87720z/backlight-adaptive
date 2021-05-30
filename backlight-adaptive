@@ -640,7 +640,7 @@ set +m
 
 # Waiting
 
-msg_debug 'Waiting for events'
+msg_debug 'Working...'
 wait $procpid
 if [ -n "$monpid" ]; then
         kill -- -$monpid
@@ -663,9 +663,9 @@ while :; do
                 state=restart
                 continue ;;
         'run'    )
-                msg_warning 'Pipeline terminated on its own' ;;
+                msg_warning 'Processing pipeline terminated on its own' ;;
         'onetime' )
-                msg_info 'Onetime adjustment complete' ;;
+                msg_info 'Backlight adjustment complete' ;;
         esac
         savepid 0
         break
