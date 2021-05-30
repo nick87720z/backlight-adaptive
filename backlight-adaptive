@@ -549,6 +549,10 @@ msg_debug "==========================="
                 else
                         next
         }
+        function check_repeat(new) {
+                if ( new && b_old && (new > b_old ? new/b_old : b_old/new) < threshold )
+                        skip_repeat()
+        }
         BEGIN {
                 onetime = system( \"! $onetime\" )
                 stderr = \"/dev/stderr\"
@@ -592,11 +596,10 @@ msg_debug "==========================="
 
                 if (use_fade) {
                         p = bl_limit( from_log( filt_run( filt, to_log(bl) ) ) )
-                        if ( (bl > p ? bl/p : p/bl) < threshold )
-                                skip_repeat()
+                        check_repeat( p )
                 } else {
-                        if ( b_old == p )
-                                skip_repeat()
+                        check_repeat( bl )
+                        p = bl
                 }
                 b_old = p
         }
