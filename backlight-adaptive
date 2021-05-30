@@ -499,10 +499,7 @@ msg_debug "${ffmpeg_cmd}"
 msg_debug "==========================="
 (
   eval exec "${ffmpeg_cmd}" </dev/null  \
-  | if [ $skip -eq 0 ]; then exec cat
-    else
-        exec $b0 tail -c+$(( skip + 1 ))
-    fi \
+  | $b0 tail -c+$(( skip + 1 )) \
   | eval "exec $b $hexprinter" \
   | $b awk \
         -v bl_fmt="${bl_fmt}" \
