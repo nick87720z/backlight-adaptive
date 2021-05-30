@@ -445,14 +445,16 @@ if [ "x$ctl_action" = "xpretend" ]; then
         exit
 fi
 
-# Check runing instance
+# Create tmpdir if doesn't exist
 
 if [ ! -e "${tmpdir}" ]; then
         mkdir -p "${tmpdir}"
 elif ! { [ -d "${path}" ] && [ -w "${path}" ]; }; then
         fatal "$tmpdir: Not a directory"
 elif [ -f "$pidfile" ]; then
-        # We are singleton
+
+        # Or check for runing instance
+        # we are singleton
 
         read pid < "$pidfile"
         if [ $((pid)) -ne 0 ] && [ "$(ps -o pid= $pid | grep $pid)" ] ; then
