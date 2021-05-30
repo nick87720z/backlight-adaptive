@@ -501,12 +501,15 @@ msg_debug "==========================="
   | $b0 tail -c+$(( 2 * skip + 1 )) \
   | eval "exec $b $hexprinter" \
   | $b awk \
-        -v bl_fmt="${bl_fmt}" \
-        "function to_log(x) {
+        -v bl_fmt="${bl_fmt}" "
+        function to_log(x) {
                 return bl_min + log(x / bl_min) * d_log_r
         }
         function from_log(x) {
                 return bl_min * r^((x - bl_min) / d)
+        }
+        function bl_limit(v) {
+                return v > $bl_max ? $bl_max : v < bl_min ? bl_min : v
         }"'
         function filt_init(fa, len, v)
         {
@@ -540,9 +543,6 @@ msg_debug "==========================="
                 }
                 return v
         }'"
-        function bl_limit(v) {
-                return v > $bl_max ? $bl_max : v < bl_min ? bl_min : v
-        }
         function skip_repeat() {
                 if (onetime)
                         exit
@@ -560,13 +560,12 @@ msg_debug "==========================="
                 PROCINFO[bl_sh, \"NONFATAL\"]=1
                 errno_prev = 0
                 errno_num = 0
-                bl_min = $bl_min
                 threshold = $threshold / 100 + 1
 
                 # speedup calculations
 
                 imax = 255 ; omax = 65535
-                bl_fm = imax * ($bl_max - bl_min)
+                bl_fm = imax * ($bl_max - $bl_min)
                 bl_fd = ($max_color * omax)
 
                 # init LPF
@@ -582,8 +581,8 @@ msg_debug "==========================="
                         use_fade = 1
                 }
                 if (use_fade) {
-                        r = $bl_max / bl_min
-                        d = $bl_max - bl_min
+                        r = $bl_max / $bl_min
+                        d = $bl_max - $bl_min
                         d_log_r = d / log(r)
                         filt_init( filt, fade_len, to_log( $( eval exec "$bl_get_cmd" ) ) )
                 }
@@ -592,34 +591,28 @@ msg_debug "==========================="
         # start
         {
                 # map to backlight range
-                bl = bl_limit( bl_min + \$1 * bl_fm / bl_fd )
+                bl = bl_limit( $bl_min + \$1 * bl_fm / bl_fd )
 
-                if (use_fade) {
-                        p = bl_limit( from_log( filt_run( filt, to_log(bl) ) ) )
-                        check_repeat( p )
-                } else {
-                        check_repeat( bl )
-                        p = bl
-                }
-                b_old = p
+                if (use_fade)
+                        bl = bl_limit( from_log( filt_run( filt, to_log(bl) ) ) )
+
+                check_repeat( bl )
+                b_old = bl
         }
 
         $(( log_level_n >= debug )) {
-                "'printf ("brightness: %.02f%% input light: %u\n", 100 * p / '$bl_max', $1 / 256) > stderr'"
+                "'printf ("brightness: %.02f%% input light: %u\n", 100 * bl / '$bl_max', $1 / 256) > stderr'"
         }
         
         # output
         { 
                 ERRNO=0
-                printf (bl_fmt, p) | bl_sh
+                printf (bl_fmt, bl) | bl_sh
 
                 if (ERRNO) {
                         if ( $(( log_level_n >= debug )) )
                         {
-                                if (ERRNO == errno_prev)
-                                        errno_num += 1
-                                else
-                                        errno_num = 0
+                                errno_num += (ERRNO == errno_prev)
                                 errno_prev = ERRNO
                                 "'printf (bl_sh": %s%s\r", ERRNO, errno_num > 0 ? sprintf(": %u times", errno_num) : "") > stderr'"
                         }
