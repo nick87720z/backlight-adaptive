@@ -141,7 +141,7 @@ savepid() {
         print "$1" > "$pidfile"
 }
 
-# event handlers: no args, require initialized procpid
+# signal handlers: no args, require initialized procpid
 quit() {
         state=int
         kill -- -$procpid
@@ -469,10 +469,9 @@ elif [ -f "$pidfile" ]; then
                 exit
         fi
 fi
-
 savepid "$$"
 
-# Event loop setup
+# Signal handlers setup
 
 trap 'quit'      INT TERM QUIT HUP
 trap 'restart'   USR1
