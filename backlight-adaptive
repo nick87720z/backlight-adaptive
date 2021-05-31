@@ -45,6 +45,15 @@ for video_dev in /dev/video* ; do break; done
 
 # Helpers
 
+newline() { printf '\n'; }
+print()   { printf '%s\n' "$1"; }
+
+h_opt() { print "  $1"; }
+h_grp() {
+        newline
+        print "$1"
+}
+
 show_help() {
         print "Usage: $(basename $0) [options] -- [backend options]"
         h_grp "Adapt backlight to ambient light using web camera as light sensor."
@@ -93,17 +102,8 @@ isnum() {
         esac; done
 }
 
-newline() { printf '\n'; }
-print()   { printf '%s\n' "$1"; }
-
 awk_expr() { awk 'BEGIN { printf ("%.17g", '"$1"') }'; }
 awk_cmd()  { awk "BEGIN { $* }"; }
-
-h_opt() { print "  $1"; }
-h_grp() {
-        newline
-        print "$1"
-}
 
 # args: name, value
 set_num() {
