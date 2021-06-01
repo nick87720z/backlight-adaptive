@@ -21,7 +21,7 @@ backends_all=internal,light,xbacklight
 
 # Default parameters
 
-delay=0.1
+rate=10
 skip=0
 onetime=false
 log_level=info
@@ -163,7 +163,7 @@ print_options() {
         done
 }
 save_config() {
-        print_options watch_conf fade_frames threshold delay log_level log_color max_color maxbright minbright video_dev acpi_dev backends backend_args | sort > "${config_file}"
+        print_options watch_conf fade_frames threshold rate log_level log_color max_color maxbright minbright video_dev acpi_dev backends backend_args | sort > "${config_file}"
 }
 
 # color helpers
@@ -245,7 +245,7 @@ then
                         video_dev   ) video_dev="$v";    continue;;
                         backend_args) backend_args="$v"; continue;;
                         backends    ) backends="$v";     continue;;
-                        delay       ) set_num delay "$v"; continue;;
+                        rate        ) set_num rate "$v"; continue;;
                         skip        ) set_num skip "$v"; continue;;
                         fade_frames ) set_int_list fade_frames "$v"; continue;;
                         threshold   ) set_num threshold "$v"; continue;;
@@ -270,7 +270,7 @@ fi
 
 while [ $# -gt 0 ]; do
         case "$1" in
-        '-d' | '--delay'         ) set_num delay "$2";            shift ;;
+        '-r' | '--rate'          ) set_num rate "$2";             shift ;;
         '-S' | '--skip'          ) set_num skip "$2";             shift ;;
         '-1' | '--onetime'       ) onetime=true ;;
         '-l' | '--log'           ) log_level="$2";                shift ;;
@@ -511,11 +511,11 @@ eval "$( v4l2-ctl --device "${video_dev}" -P -V | awk -vFS=':' '
 )"
 msg_debug "saving camera settings: width = ${cam_width}, height = ${cam_height}, fps = ${cam_fps}"
 
-ifps=$( awk_cmd 'sprintf ("v4l2-ctl --device '${video_dev}' -p %i\n", 1 / '$delay') | getline; print $5' )
+ifps=$( awk_cmd 'sprintf ("v4l2-ctl --device '${video_dev}' -p %i\n", '$rate') | getline; print $5' )
 ffmpeg_cmd='$b ffmpeg -v $([ $log_level_n -ge $debug ] && printf verbose || printf quiet) \
         -f v4l2 -s 1x1 -r "${ifps}" -i "${video_dev}"  \
         -vf scale=1:1:flags=area+accurate_rnd+print_info,format=${pix_fmt} \
-        -vcodec rawvideo -f rawvideo -r 1/${delay} -'
+        -vcodec rawvideo -f rawvideo -r ${rate} -'
 msg_debug "pix_fmt  : $pix_fmt"
 msg_debug "=== ffmpeg_cmd ============"
 msg_debug "${ffmpeg_cmd}"
@@ -661,7 +661,7 @@ while :; do
 done
 } & monpid=$!; fi
 
-# silence job control
+# silence job control noise
 set +m
 
 # Waiting
@@ -681,7 +681,7 @@ while :; do
                 savepid 0
                 eval exec "$0 $startup_args" ;;
         'input_max' )
-                frames=$( awk_expr "($delay >= 1 ? 1 : int(1 / $delay)) + 1" )
+                frames=$( awk_expr "($rate <= 1 ? 1 : int($rate)) + 1" )
                 max_color=$( ffmpeg -v quiet -f v4l2 -s 1x1 -i "${video_dev}" -frames $frames -vcodec rawvideo -f rawvideo -vf scale=1:1:flags=area+accurate_rnd,format=gray - | tail -c1 | od -An -w1 -tu1 | tr -d ' ' )
                 msg_info "New light maximum: $max_color / 255"
                 save_config
