@@ -216,6 +216,11 @@ fatal() {
         exit 1
 }
 
+# args: percents
+# req:  bl_hwmax
+percent_to_raw() { awk_expr "$bl_hwmax * $1 / 100"; }
+
+
 ##### START #####
 
 # Find config file or place to save it
@@ -393,8 +398,8 @@ for backend in $( print "$backends" | tr ',' ' ' ) ; do
                 
                 # Translate brightness limits to raw backlight range
                 read bl_hwmax < "${acpi_dir}/max_brightness"
-                bl_max=$( awk_expr "$maxbright * $bl_hwmax / 100" )
-                bl_min=$( awk_expr "$minbright * $bl_hwmax / 100" )
+                bl_max=$( percent_to_raw "$maxbright" )
+                bl_min=$( percent_to_raw "$minbright" )
 
                 bl_get_cmd="cat '${ctl_file}'"
                 bl_sh="cat > '${ctl_file}'"
