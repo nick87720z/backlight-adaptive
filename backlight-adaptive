@@ -620,7 +620,7 @@ msg_debug "==========================="
         }
 
         $(( log_level_n >= debug )) {
-                "'printf ("brightness: %.02f%% input light: %u\n", 100 * bl / '$bl_max', $1 / 256) > stderr'"
+                "'printf ("brightness: %.02f%% | input light: %u / %u\n", 100 * bl / '$bl_max', $1, omax) > stderr'"
         }
         
         # output
@@ -661,7 +661,7 @@ set +m
 
 # Waiting
 
-msg_debug 'Working...'
+msg_info 'Working...'
 wait $procpid
 if [ -n "$monpid" ]; then
         kill -- -$monpid
