@@ -413,6 +413,8 @@ msg_info "Using backend ${bold}$(col green)${backend}"
 msg_debug "bl_get_cmd: $bl_get_cmd"
 msg_debug "bl_sh     : $bl_sh"
 msg_debug "bl_fmt    : $bl_fmt"
+msg_debug "bl_max    : $bl_max"
+msg_debug "bl_min    : $bl_min"
 
 # onetime tuning 
 if $onetime; then
@@ -502,6 +504,7 @@ eval "$( v4l2-ctl --device "${video_dev}" -P -V | awk -vFS=':' '
                 print "cam_fps=" a[1]
         }'
 )"
+msg_debug "saving camera settings: width = ${cam_width}, height = ${cam_height}, fps = ${cam_fps}"
 
 ifps=$( awk_cmd 'sprintf ("v4l2-ctl --device '${video_dev}' -p %i\n", 1 / '$delay') | getline; print $5' )
 ffmpeg_cmd='$b ffmpeg -v $([ $log_level_n -ge $debug ] && printf verbose || printf quiet) \
@@ -686,7 +689,8 @@ while :; do
                 msg_info 'Backlight adjustment complete' ;;
         esac
         # restore original frame size and rate
-        v4l2-ctl --device "${video_dev}" -p "${cam_fps}" -v "width=${cam_width},height=${cam_height}" > /dev/null
+        msg_debug "loading camera settings: width = ${cam_width}, height = ${cam_height}, fps = ${cam_fps}"
+        msg_debug "$( v4l2-ctl --device "${video_dev}" -p "${cam_fps}" -v "width=${cam_width},height=${cam_height}" -P -V )"
         savepid 0
         break
 done
