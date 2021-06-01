@@ -690,7 +690,7 @@ while :; do
         esac
         # restore original frame size and rate
         msg_debug "loading camera settings: width = ${cam_width}, height = ${cam_height}, fps = ${cam_fps}"
-        msg_debug "$( v4l2-ctl --device "${video_dev}" -p "${cam_fps}" -v "width=${cam_width},height=${cam_height}" -P -V )"
+        msg_debug "$( while fuser "${video_dev}" >/dev/null 2>&1; do sleep 0.1; done; v4l2-ctl --device "${video_dev}" -p "${cam_fps}" -v "width=${cam_width},height=${cam_height}" -P -V )"
         savepid 0
         break
 done

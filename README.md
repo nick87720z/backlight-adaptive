@@ -20,6 +20,7 @@ Adaptive backlight daemon, using camera as light sensor.
 - [coreutils](https://www.gnu.org/software/coreutils/)
 - [GNU awk](https://www.gnu.org/software/gawk/gawk.html)
 - [v4l-utils](https://git.linuxtv.org/v4l-utils.git)
+- [psmisc](https://gitlab.com/psmisc/psmisc)
 
 #### Optional (alternative)
 
@@ -27,7 +28,7 @@ Adaptive backlight daemon, using camera as light sensor.
 - [util-linux](https://www.kernel.org/pub/linux/utils/util-linux/) - use hexdump instead of od
 - [inotify-tools](https://github.com/inotify-tools/inotify-tools) - to auto-restart on configuration change
 
-#### Backlight control backends
+#### Backlight control backends (optional)
 
 - [light](https://github.com/haikarainen/light)
 - [xbacklight](https://gitlab.freedesktop.org/xorg/app/xbacklight) or [acpilight](sys-power/acpilight)
