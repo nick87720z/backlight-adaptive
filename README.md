@@ -1,10 +1,10 @@
-Adaptive backlight daemon, using camera as light sensor.
+Highly reactive daemon for adaptive backlight, using camera as light sensor.
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 ## Features
 - smooth backlight adaptation
-- start with delay
+- delayed start
 - one-time mode
 - auto-restart on configuration file change
 - set maximum light to current by SIGUSR2 signal
@@ -35,35 +35,35 @@ Adaptive backlight daemon, using camera as light sensor.
 
 **Note:** It will tell when necessary tools are missing.
 
-## Usage
+# Usage
 
-Type `backlight-adaptive -h` to see all options.
+Type `backlightadapt -h` to see all options.
 
 #### Useful options
 
 Run with default settings
 ```
-$ backlight-adaptive
+$ backlightadapt
 ```
 
 Toggle running
 ```
-$ backlight-adaptive -t
+$ backlightadapt -t
 ```
 
 Match backlight once to current light level and quit.
 ```
-$ backlight-adaptive -1
+$ backlightadapt -1
 ```
 
 Update maximum light level to current
 ```
-$ backlight-adaptive --calibrate
+$ backlightadapt --calibrate
 ```
 
 Update configuration with command line options included
 ```
-$ backlight-adaptive --update-conf
+$ backlightadapt --update-conf
 ```
 
 ### Backlight change smoothing
@@ -74,12 +74,12 @@ Backlight can change smoothly by using multiple box filter stages. Box filters a
 
 Use short anti-fluctuation filter
 ```
-$ backlight-adaptive --smooth 6,6
+$ backlightadapt --smooth 6,6
 ```
 
 Slow accomodation filter
 ```
-$ backlight-adaptive --smooth 120,120,20
+$ backlightadapt --smooth 120,120,20
 ```
 
 **Note:** Two equally sized filters seem to be most optimal setup.
@@ -110,9 +110,13 @@ Following steps are necessary for internal ACPI backend to work.
 
 **Note:** other tools like *acpilight* or *light* may have it already done.
 
+## Bug reports
+
+Please report bugs at [github](https://github.com/nick87720z/backlight-adaptive/issues) or [opencode](https://www.opencode.net/nick87720z/backlight-adaptive/-/issues) project page.
+
 ## Under hood
 
-Shell script only makes configuration, all dirty job is done by persistant ffmpeg-based pipeline.
+Shell script only makes setup, all dirty job is done by persistant ffmpeg-based pipeline.
 
 ## Known alternatives
 
