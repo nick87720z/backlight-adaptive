@@ -632,9 +632,11 @@ fi
 
 # setup config change monitor
 if $watch_conf && [ -n "$config_file" ]; then {
+while :; do
         inotifywait -q -e modify "$config_file"
         msg_info 'Configuration changed'
         kill -s USR1 $$
+done
 } & monpid=$!; fi
 
 # silence job control
