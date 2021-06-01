@@ -304,7 +304,7 @@ msg_info "Config file: ${bold}$(col green)${config_file}"
 
 # core depepdencies
 msg_info 'Checking dependencies'
-for dep in tr ffmpeg awk v4l2-ctl cat tail; do
+for dep in tr ffmpeg awk v4l2-ctl cat tail fuser; do
         if ! cmd_avail "$dep"; then
                 msg_error "${dep} executable required but not found"
                 abort=1
