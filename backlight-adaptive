@@ -45,54 +45,46 @@ for video_dev in /dev/video* ; do break; done
 
 # Helpers
 
-newline() { printf '\n'; }
 print()   { printf '%s\n' "$1"; }
 
-h_opt() { print "  $1"; }
-h_grp() {
-        newline
-        print "$1"
-}
-
 show_help() {
-        print "Usage: $(basename $0) [options] -- [backend options]"
-        h_grp "Adapt backlight to ambient light using web camera as light sensor."
+cat << help_end
+Usage: $(basename $0) [options] -- [backend options]
 
-        h_grp "Capture options:"
-        h_opt "-v, --video-dev DEVICE      Video device used as sensor (e.g. /dev/video0)"
-        h_opt "-1, --onetime               Make single adjustment and quit"
-        h_opt "-S, --skip      INTEGER     Frames number to skip at capture start"
+Adapt backlight to ambient light using web camera as light sensor.
 
-        h_grp "Backend options:"
-        h_opt "-a, --acpi-dev  NAME        ACPI device to be controlled"
-        h_opt "-b, --backends  STR,STR...  Comma-separated list of backlight control backends"
-        h_opt "-B, --list-backends         List available backends"
+Commands:
+  -t, --toggle                Stop runing instance or run as new
+  -1, --onetime               Make single adjustment and quit
+      --calibrate             Update light level for full backlight
+  -p, --pretend               Print running parameters without actual run
+  -h, --help                  Show this help
 
-        h_grp "Intensity options:"
-        h_opt "-M, --bl-max    FLOAT       Maximum backlight level (%)"
-        h_opt "-m, --bl-min    FLOAT       Minimum backlight level (%)"
-        h_opt "-C, --max-color INTEGER     Color value for full backlight level"
+Capture options:
+  -v, --video-dev DEVICE      Video device used as sensor (e.g. /dev/video0)
+  -C, --color-max INTEGER     Color value for full backlight level
+  -S, --skip      INTEGER     Frames number to skip at capture start
+  -r, --rate      FLOAT       Frame rate (frames per second)
 
-        h_grp "Reaction options:"
-        h_opt "-d, --delay     FLOAT       Snapshots delay (seconds)"
-        h_opt "-s, --smooth    INT,INT...  Frames number to smooth (0 to disable)"
-        h_opt "-T, --threshold FLOAT       Minimum difference for repeats (%)"
+Backlight options:
+  -M, --bl-max    FLOAT       Maximum backlight level (%)
+  -m, --bl-min    FLOAT       Minimum backlight level (%)
+  -s, --smooth    INT,INT...  Frames number to smooth (0 to disable)
+  -T, --threshold FLOAT       Minimum difference for repeats (%)
 
-        h_grp "Configuration options:"
-        h_opt "-w, --watchconf BOOLEAN     Auto-restart when configuration file is changed"
-        h_opt "-u, --update-conf           Update configuration with command line options and new options"
+Backend options:
+  -a, --acpi-dev  NAME        ACPI device to be controlled
+  -b, --backends  STR,STR...  Comma-separated list of backlight control backends
+  -B, --list-backends         List available backends
 
-        h_grp "Output options:"
-        h_opt "-l, --log       STRING      Log verbosity. One of: error, warning, info, debug"
-        h_opt "-c, --color     BOOLEAN     Colorize output"
+Configuration options:
+  -w, --watchconf BOOLEAN     Auto-restart when configuration file is changed
+  -u, --update-conf           Update configuration with command line options and new options
 
-        h_grp "Instance control commands:"
-        h_opt "-t, --toggle                Stop runing instance or run as new"
-        h_opt "    --calibrate             Update light level for full backlight"
-        h_opt "-p, --pretend               Print running parameters without actual run"
-
-        h_grp "Help:"
-        h_opt "-h, --help                  Show this help"
+Log options:
+  -l, --log       STRING      Log verbosity. One of: error, warning, info, debug
+  -c, --color     BOOLEAN     Colorize output
+help_end
 }
 
 # args: value
