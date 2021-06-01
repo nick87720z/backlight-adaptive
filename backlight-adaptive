@@ -489,6 +489,20 @@ msg_debug '=== Processing start ==='
 b='stdbuf -oL'
 b0='stdbuf -o0'
 pix_fmt=$( printf '\x11' | $byteorder_test | awk 'FNR==1 { print substr($2,4,1) ? "gray16le" : "gray16be" }' )
+
+# save original frame size and rate
+eval "$( v4l2-ctl --device /dev/video0 -P -V | awk -vFS=':' '
+        /[[:space:]]*Width\/Height/ {
+                split ($2, a, " ")
+                split (a[1], a, "/")
+                printf "cam_width=%s; cam_height=%s; ", a[1], a[2]
+        }
+        /[[:space:]]*Frames per second/ {
+                split ($2, a, " ")
+                print "cam_fps=" a[1]
+        }'
+)"
+
 ifps=$( awk_cmd 'sprintf ("v4l2-ctl --device '${video_dev}' -p %i\n", 1 / '$delay') | getline; print $5' )
 ffmpeg_cmd='$b ffmpeg -v $([ $log_level_n -ge $debug ] && printf verbose || printf quiet) \
         -f v4l2 -s 1x1 -r "${ifps}" -i "${video_dev}"  \
@@ -671,6 +685,8 @@ while :; do
         'onetime' )
                 msg_info 'Backlight adjustment complete' ;;
         esac
+        # restore original frame size and rate
+        v4l2-ctl --device /dev/video0 -p "${cam_fps}" -v "width=${cam_width},height=${cam_height}" > /dev/null
         savepid 0
         break
 done
