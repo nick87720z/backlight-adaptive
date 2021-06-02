@@ -61,7 +61,7 @@ Commands:
   -h, --help                  Show this help
 
 Capture options:
-  -v, --video-dev DEVICE      Video device used as sensor (e.g. /dev/video0)
+  -v, --video-dev DEVICE      Video device used as sensor, e.g. /dev/video0 
   -C, --color-max INTEGER     Color value for full backlight level
   -S, --skip      INTEGER     Frames number to skip at capture start
   -r, --rate      FLOAT       Frame rate (frames per second)
@@ -69,7 +69,7 @@ Capture options:
 Backlight options:
   -M, --bl-max    FLOAT       Maximum backlight level (%)
   -m, --bl-min    FLOAT       Minimum backlight level (%)
-  -s, --smooth    INT,INT...  Frames number to smooth (0 to disable)
+  -s, --smooth    INT,INT...  Light filters description, 0 to disable (see README)
   -T, --threshold FLOAT       Minimum difference for repeats (%)
 
 Backend options:
