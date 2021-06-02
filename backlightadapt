@@ -21,7 +21,7 @@ backends_all=internal,light,xbacklight
 
 # Default parameters
 
-rate=10
+rate=30
 skip=0
 onetime=false
 log_level=info
