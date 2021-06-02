@@ -536,26 +536,43 @@ msg_debug "==========================="
                         fa[j]["s"] = v * l
                         fa[j]["m"] = 2^(PREC - prec_diff)
                         fa[j]["i"] = 0
+                        fa[j]["t"] = (j == 1) ? 1 : 0
                         for (i = 0; i < l; i += 1)
-                                fa[j][i] = v
+                                fa[j]["a"][i] = v
                 }
         }
         function filt_run(fa, v)
         {
                 for (j in fa) {
-                        l = fa[j]["l"]
-                        s = fa[j]["s"]
-                        i = fa[j]["i"]
-                        m = fa[j]["m"]
+                        switch (fa[j]["t"])
+                        {
+                        case 0:
+                                l = fa[j]["l"]
+                                s = fa[j]["s"]
+                                i = fa[j]["i"]
+                                m = fa[j]["m"]
 
-                        v = int(v * m) / m
-                        s += v - fa[j][i]
-                        fa[j][i] = v
-                        v = s / l
-                        i = (i + 1) % l
+                                v = int(v * m) / m
+                                s += v - fa[j]["a"][i]
+                                fa[j]["a"][i] = v
+                                v = s / l
+                                i = (i + 1) % l
 
-                        fa[j]["i"] = i
-                        fa[j]["s"] = s
+                                fa[j]["i"] = i
+                                fa[j]["s"] = s
+                                break
+                        case 1:
+                                i = fa[j]["i"]
+                                l = fa[j]["l"]
+
+                                fa[j]["a"][i] = v
+                                i = (i + 1) % l
+                                fa[j]["i"] = i
+
+                                asort (fa[j]["a"], sf)
+                                v = sf[int(l / 2)]
+                                break
+                        }
                 }
                 return v
         }'"
@@ -590,7 +607,7 @@ msg_debug "==========================="
                 use_fade = 0
                 for (j in fade_len)
                 {
-                        if (fade_len[j] < 2) {
+                        if (int( fade_len[j] ) < 2) {
                                 delete fade_len[j]
                                 continue
                         }
