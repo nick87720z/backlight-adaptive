@@ -570,7 +570,8 @@ msg_debug "==========================="
                                 fa[j]["i"] = i
 
                                 asort (fa[j]["a"], sf)
-                                v = sf[int(l / 2)]
+                                i = l / 2
+                                v = (i == int(i)) ? (sf[i] + sf[i+1]) / 2 : sf[int(i) + 1]
                                 break
                         }
                 }
