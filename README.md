@@ -115,7 +115,7 @@ Configuration file is automatically created if no other file exists and writeabl
 
 #### Calibration
 
-Update maximum light level to current. This may be done either by running with `--calibrate` option or by sending SIGUSR2 to working instance.
+Update light / backlight ceil to current. This may be done either by running with `--calibrate` option or by sending SIGUSR2 to working instance.
 
 #### Locations
 

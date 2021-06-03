@@ -56,7 +56,7 @@ Adapt backlight to ambient light using web camera as light sensor.
 Commands:
   -t, --toggle                Stop runing instance or run as new
   -1, --onetime               Make single adjustment and quit
-      --calibrate             Update light level for full backlight
+      --calibrate             Update maximum light and backlight to current
   -p, --pretend               Print running parameters without actual run
   -h, --help                  Show this help
 
@@ -352,14 +352,18 @@ for backend in $( print "$backends" | tr ',' ' ' ) ; do
         case "$backend" in
         light )
                 type ${backend} >/dev/null 2>&1 || continue
-                bl_get_cmd='light -G'
+                bl_get() {
+                        light -G
+                }
                 bl_sh='sh'
                 bl_fmt="light -S %f ${backend_args}\n"
                 break
         ;;
         xbacklight )
                 type ${backend} >/dev/null 2>&1 || continue
-                bl_get_cmd='xbacklight -get'
+                bl_get() {
+                        xbacklight -get
+                }
                 bl_sh='sh'
                 bl_fmt="xbacklight -set %f ${backend_args}\n"
                 break
@@ -394,7 +398,9 @@ for backend in $( print "$backends" | tr ',' ' ' ) ; do
                 bl_max=$( percent_to_raw "$maxbright" )
                 bl_min=$( percent_to_raw "$minbright" )
 
-                bl_get_cmd="cat '${ctl_file}'"
+                bl_get() {
+                        awk_cmd 'getline v < "'"${ctl_file}"'"; printf "%f", v * 100 / '"${bl_hwmax}"
+                }
                 bl_sh="cat > '${ctl_file}'"
                 bl_fmt='%u\n'
 
@@ -408,7 +414,6 @@ if [ ! "${backend}" ]; then
 fi
 
 msg_info "Using backend ${bold}$(col green)${backend}"
-msg_debug "bl_get_cmd: $bl_get_cmd"
 msg_debug "bl_sh     : $bl_sh"
 msg_debug "bl_fmt    : $bl_fmt"
 msg_debug "bl_max    : $bl_max"
@@ -619,7 +624,7 @@ msg_debug "==========================="
                         r = $bl_max / $bl_min
                         d = $bl_max - $bl_min
                         d_log_r = d / log(r)
-                        filt_init( filt, fade_len, to_log( $( eval exec "$bl_get_cmd" ) ) )
+                        filt_init( filt, fade_len, to_log( $(bl_get) / 100 * ${bl_hwmax} ) )
                 }
         }
 
@@ -692,9 +697,12 @@ while :; do
                 savepid 0
                 eval exec "$0 $startup_args" ;;
         'input_max' )
+                msg_info "Recalibration..."
                 frames=$( awk_expr "($rate <= 1 ? 1 : int($rate)) + 1" )
+                maxbright=$( bl_get )
                 max_color=$( ffmpeg -v quiet -f v4l2 -s 1x1 -i "${video_dev}" -frames $frames -vcodec rawvideo -f rawvideo -vf scale=1:1:flags=area+accurate_rnd,format=gray - | tail -c1 | od -An -w1 -tu1 | tr -d ' ' )
                 msg_info "New light maximum: $max_color / 255"
+                msg_info "New backlight max: $maxbright%"
                 save_config
 
                 state=restart
