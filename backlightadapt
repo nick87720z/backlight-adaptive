@@ -30,7 +30,7 @@ log_color=false
 max_color=35
 maxbright=100
 minbright=1
-fade_frames=0
+smooth=0
 threshold=1
 
 acpi_dev=
@@ -155,7 +155,7 @@ print_options() {
         done
 }
 save_config() {
-        print_options watch_conf fade_frames threshold rate log_level log_color max_color maxbright minbright video_dev acpi_dev backends backend_args | sort > "${config_file}"
+        print_options watch_conf smooth threshold rate log_level log_color max_color maxbright minbright video_dev acpi_dev backends backend_args | sort > "${config_file}"
 }
 
 # color helpers
@@ -239,7 +239,8 @@ then
                         backends    ) backends="$v";     continue;;
                         rate        ) set_num rate "$v"; continue;;
                         skip        ) set_num skip "$v"; continue;;
-                        fade_frames ) set_int_list fade_frames "$v"; continue;;
+                        fade_frames |\
+                        smooth      ) set_int_list smooth "$v"; continue;;
                         threshold   ) set_num threshold "$v"; continue;;
                         log_level   ) log_level="$v";    continue;;
                         log_color   ) set_bool log_color "$v"; continue;;
@@ -271,7 +272,7 @@ while [ $# -gt 0 ]; do
         '-m' | '--bl-min'        ) set_num minbright "$2";        shift ;;
         '-C' | '--max-color'     ) set_num max_color "$2";        shift ;;
         '--calibrate'            ) ctl_action=cal ;;
-        '-s' | '--smooth'        ) set_int_list fade_frames "$2"; shift ;;
+        '-s' | '--smooth'        ) set_int_list smooth "$2";      shift ;;
         '-T' | '--threshold'     ) set_int threshold "$2";        shift ;;
         '-a' | '--acpi-dev'      ) acpi_dev="$2";                 shift ;;
         '-v' | '--video-dev'     ) video_dev="$2";                shift ;;
@@ -417,7 +418,7 @@ msg_debug "bl_min    : $bl_min"
 if $onetime; then
         msg_info 'One-time mode'
 fi
-if [ "$fade_frames" != 0 ] && [ "$bl_min" = 0 ]; then
+if [ "$smooth" != 0 ] && [ "$bl_min" = 0 ]; then
         msg_warning "Minimum backlight can't be zero when fade is enabled. Set to 1 (of max $bl_max)"
         bl_min=1
 fi
@@ -482,7 +483,7 @@ trap 'input_max' USR2
 
 set -m
 
-msg_info "Smoothing duration: $fade_frames frames"
+msg_info "Smoothing duration (frames): $smooth"
 
 msg_debug '=== Processing start ==='
 b='stdbuf -oL'
@@ -604,7 +605,7 @@ msg_debug "==========================="
 
                 # init LPF
 
-                split( \"${fade_frames}\", fade_len, \",\" )
+                split( \"${smooth}\", fade_len, \",\" )
                 use_fade = 0
                 for (j in fade_len)
                 {
