@@ -212,6 +212,15 @@ fatal() {
 # req:  bl_hwmax
 percent_to_raw() { awk_expr "$bl_hwmax * $1 / 100"; }
 
+calibrate() {
+        msg_info "Recalibration..."
+        frames=$( awk_expr "($rate <= 1 ? 1 : int($rate)) + 1" )
+        maxbright=$( bl_get )
+        max_color=$( ffmpeg -v quiet -f v4l2 -s 1x1 -i "${video_dev}" -frames $frames -vcodec rawvideo -f rawvideo -vf scale=1:1:flags=area+accurate_rnd,format=gray - | tail -c1 | od -An -w1 -tu1 | tr -d ' ' )
+        msg_info "New light maximum: $max_color / 255"
+        msg_info "New backlight max: $maxbright%"
+        save_config
+}
 
 ##### START #####
 
@@ -476,6 +485,9 @@ elif [ -f "$pidfile" ]; then
                 exit
         fi
 fi
+if [ "$ctl_action" = cal ]; then
+        calibrate
+fi
 savepid "$$"
 
 # Signal handlers setup
@@ -697,14 +709,7 @@ while :; do
                 savepid 0
                 eval exec "$0 $startup_args" ;;
         'input_max' )
-                msg_info "Recalibration..."
-                frames=$( awk_expr "($rate <= 1 ? 1 : int($rate)) + 1" )
-                maxbright=$( bl_get )
-                max_color=$( ffmpeg -v quiet -f v4l2 -s 1x1 -i "${video_dev}" -frames $frames -vcodec rawvideo -f rawvideo -vf scale=1:1:flags=area+accurate_rnd,format=gray - | tail -c1 | od -An -w1 -tu1 | tr -d ' ' )
-                msg_info "New light maximum: $max_color / 255"
-                msg_info "New backlight max: $maxbright%"
-                save_config
-
+                calibrate
                 state=restart
                 continue ;;
         'run'    )
