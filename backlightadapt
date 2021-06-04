@@ -56,7 +56,7 @@ Adapt backlight to ambient light using web camera as light sensor.
 Commands:
   -t, --toggle                Stop runing instance or run as new
   -1, --onetime               Make single adjustment and quit
-      --calibrate             Update maximum light and backlight to current
+      --calibrate             Calibrate backlight to luminance ratio
   -p, --pretend               Print running parameters without actual run
   -h, --help                  Show this help
 
@@ -215,8 +215,12 @@ percent_to_raw() { awk_expr "$bl_hwmax * $1 / 100"; }
 calibrate() {
         msg_info "Recalibration..."
         frames=$( awk_expr "($rate <= 1 ? 1 : int($rate)) + 1" )
-        maxbright=$( bl_get )
-        max_color=$( ffmpeg -v quiet -f v4l2 -s 1x1 -i "${video_dev}" -frames $frames -vcodec rawvideo -f rawvideo -vf scale=1:1:flags=area+accurate_rnd,format=gray - | tail -c1 | od -An -w1 -tu1 | tr -d ' ' )
+        bl_cur=$( bl_get )
+        input=$( ffmpeg -v quiet -f v4l2 -s 1x1 -i "${video_dev}" -frames $frames -vcodec rawvideo -f rawvideo -vf scale=1:1:flags=area+accurate_rnd,format=gray - | tail -c1 | od -An -w1 -tu1 | tr -d ' ' )
+        max_color=$( awk_expr "int( $input / $bl_cur * $maxbright )" )
+        if [ $max_color -gt 255 ]; then
+                $max_color=255
+        fi
         msg_info "New light maximum: $max_color / 255"
         msg_info "New backlight max: $maxbright%"
         save_config

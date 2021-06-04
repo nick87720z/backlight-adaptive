@@ -115,7 +115,7 @@ Configuration file is automatically created if no other file exists and writeabl
 
 #### Calibration
 
-Update light / backlight ceil to current. This may be done either by running with `--calibrate` option or by sending SIGUSR2 to working instance.
+Update backlight to luminance ratio to current. This may be done either by running with `--calibrate` option or by sending SIGUSR2 to working instance (will send a signal if there is runing instance).
 
 #### Locations
 
