@@ -62,7 +62,7 @@ Commands:
 
 Capture options:
   -v, --video-dev DEVICE      Video device used as sensor, e.g. /dev/video0 
-  -C, --color-max INTEGER     Color value for full backlight level
+  -C, --color-max INTEGER     Color value for full backlight level (0..255)
   -S, --skip      INTEGER     Frames number to skip at capture start
   -r, --rate      FLOAT       Frame rate (frames per second)
 
